@@ -1,196 +1,202 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, Plus, Search, Trophy, Star, Calendar } from 'lucide-react';
+import { Search, Plus, Info, Edit } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Modal } from '@/components/ui/modal';
+import { useSports } from '@/hooks/useSports'; // Importa o hook de esportes
+
+import teamManagementModalProps from "@/components/TeamManagementModalProps.tsx";
 
 const Teams = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sportFilter, setSportFilter] = useState('all');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [myTeams] = useState([
-    {
-      id: 1,
-      name: 'Thunders FC',
-      sport: 'Futebol',
-      role: 'Capitão',
-      members: 15,
-      wins: 8,
-      losses: 2,
-      draws: 1,
-      logo: '⚽',
-      description: 'Time competitivo de futebol society',
-      nextGame: '2024-12-01',
-      rating: 4.7
-    },
-    {
-      id: 2,
-      name: 'Spike Masters',
-      sport: 'Vôlei',
-      role: 'Jogador',
-      members: 8,
-      wins: 12,
-      losses: 3,
-      draws: 0,
-      logo: '🏐',
-      description: 'Equipe de vôlei de praia profissional',
-      nextGame: '2024-12-03',
-      rating: 4.9
+  const [myTeams, setMyTeams] = useState<any[]>([]); // Meus times
+  const [availableTeams, setAvailableTeams] = useState<any[]>([]); // Times disponíveis
+  const [selectedTeam, setSelectedTeam] = useState<any>(null); // Time selecionado para o modal
+  const [isModalOpen, setIsModalOpen] = useState(false); // Controle do modal
+
+  const { sports, getSport, loading: sportsLoading } = useSports(); // Hook com a função getSport
+
+
+  const [selectedTeamForManagement, setSelectedTeamForManagement] = useState<any>(null);
+
+
+  // Função para buscar "Meus Times" do banco
+  const fetchMyTeams = async () => {
+    setLoading(true);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const user = sessionData?.session?.user;
+      if (!user) throw new Error('Usuário não autenticado.');
+
+      const { data, error } = await supabase.from('teams').select('*').eq('owner_id', user.id); // Filtra times administrados pelo usuário
+      if (error) throw error;
+
+      setMyTeams(data || []);
+    } catch (err: any) {
+      console.error('Erro ao buscar "Meus Times":', err.message);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const [availableTeams] = useState([
-    {
-      id: 3,
-      name: 'Basket Warriors',
-      sport: 'Basquete',
-      members: 10,
-      maxMembers: 12,
-      wins: 5,
-      losses: 1,
-      logo: '🏀',
-      description: 'Time de basquete 3x3 procura novos talentos',
-      captain: 'Ana Costa',
-      rating: 4.6,
-      recruiting: true
-    },
-    {
-      id: 4,
-      name: 'Tennis Club Elite',
-      sport: 'Tênis',
-      members: 6,
-      maxMembers: 8,
-      wins: 15,
-      losses: 4,
-      logo: '🎾',
-      description: 'Clube de tênis para jogadores avançados',
-      captain: 'Carlos Silva',
-      rating: 4.8,
-      recruiting: true
-    },
-    {
-      id: 5,
-      name: 'Runners United',
-      sport: 'Corrida',
-      members: 20,
-      maxMembers: 25,
-      wins: 0,
-      losses: 0,
-      logo: '🏃',
-      description: 'Grupo de corrida para todos os níveis',
-      captain: 'Pedro Lima',
-      rating: 4.5,
-      recruiting: true
+  // Função para buscar "Times Disponíveis" do banco
+  const fetchAvailableTeams = async () => {
+    setLoading(true);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const user = sessionData?.session?.user;
+      if (!user) throw new Error('Usuário não autenticado.');
+
+      const { data, error } = await supabase.from('teams').select('*').neq('owner_id', user.id); // Times que não pertencem ao usuário
+      if (error) throw error;
+
+      setAvailableTeams(data || []);
+      console.log(data);
+      console.log(data);
+    } catch (err: any) {
+      console.error('Erro ao buscar "Times Disponíveis":', err.message);
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const filteredAvailableTeams = availableTeams.filter(team => {
-    const matchesSearch = team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         team.description.toLowerCase().includes(searchTerm.toLowerCase());
+  // Carregar os dados do banco ao montar o componente
+  useEffect(() => {
+    fetchMyTeams();
+    fetchAvailableTeams();
+  }, []);
+
+  // Filtrar "Times Disponíveis"
+  const filteredAvailableTeams = availableTeams.filter((team) => {
+    const matchesSearch =
+        team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (team.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchesSport = sportFilter === 'all' || team.sport === sportFilter;
-    
+
     return matchesSearch && matchesSport;
   });
 
+  // Função para abrir modal com detalhes
+  const handleShowDetails = (team: any) => {
+    setSelectedTeam(team);
+    setIsModalOpen(true);
+  };
+
+  // Função para ingressar em um time
+  const handleJoinTeam = async (teamId: string) => {
+    setLoading(true);
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+
+      const user = sessionData?.session?.user;
+      if (!user) throw new Error('Usuário não autenticado.');
+
+      const { error } = await supabase
+          .from('team_members')
+          .insert([{ team_id: teamId, user_id: user.id }]); // Relacionamento: time e usuário
+      if (error) throw error;
+
+      alert('Solicitação de participação enviada!');
+    } catch (err: any) {
+      console.error('Erro ao ingressar no time:', err.message);
+      alert('Não foi possível ingressar no time.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || sportsLoading) {
+    return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <p>Carregando os times...</p>
+        </div>
+    );
+  }
+
+  if (error) {
+    return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center text-red-600">
+          <p>Erro ao carregar os times: {error}</p>
+        </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Meus Times</h1>
-            <p className="text-gray-600">Gerencie seus times e encontre novos para participar</p>
-          </div>
-          <Button asChild className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700">
-            <Link to="/create-team" className="flex items-center space-x-2">
-              <Plus className="w-4 h-4" />
-              <span>Criar Time</span>
-            </Link>
-          </Button>
-        </div>
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
 
-        {/* My Teams */}
-        <div className="mb-12">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Meus Times</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {myTeams.map((team) => (
-              <Card key={team.id} className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader>
-                  <div className="flex items-center space-x-3 mb-3">
-                    <span className="text-3xl">{team.logo}</span>
-                    <div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 space-y-4 sm:space-y-0">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Meus Times</h1>
+              <p className="text-gray-600">Gerencie seus times ou encontre novos para participar!</p>
+            </div>
+            <Button asChild className="bg-green-600 hover:bg-green-700">
+              <Link to="/create-team" className="flex items-center space-x-2">
+                <Plus className="w-4 h-4" />
+                <span>Criar Time</span>
+              </Link>
+            </Button>
+          </div>
+
+          {/* Meus Times */}
+          <div className="mb-12">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Meus Times</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {myTeams.map((team) => (
+                  <Card key={team.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
                       <CardTitle className="text-lg">{team.name}</CardTitle>
-                      <div className="flex items-center space-x-2">
-                        <Badge variant="secondary" className="text-xs">{team.sport}</Badge>
-                        <Badge className="text-xs bg-blue-100 text-blue-800">{team.role}</Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                    <span className="text-sm font-medium">{team.rating}</span>
-                    <span className="text-sm text-gray-500">• {team.members} membros</span>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-gray-600 text-sm">{team.description}</p>
-                  
-                  <div className="grid grid-cols-3 gap-2 text-center text-sm">
-                    <div>
-                      <div className="font-semibold text-green-600">{team.wins}</div>
-                      <div className="text-gray-500">Vitórias</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-red-600">{team.losses}</div>
-                      <div className="text-gray-500">Derrotas</div>
-                    </div>
-                    <div>
-                      <div className="font-semibold text-yellow-600">{team.draws}</div>
-                      <div className="text-gray-500">Empates</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Calendar className="w-4 h-4" />
-                    <span>Próximo jogo: {new Date(team.nextGame).toLocaleDateString('pt-BR')}</span>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Ver Detalhes
-                    </Button>
-                    <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700">
-                      Gerenciar
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                      <Badge variant="secondary">
+                        {getSport(team.sport)?.emoji || ''} {getSport(team.sport_id)?.name || 'Esporte não definido'}
+                      </Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                          size="sm"
+                          className="bg-green-600 hover:bg-green-700 w-full"
+                          onClick={() => alert('Funcionalidade Gerenciar ainda não implementada')}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Gerenciar
+                      </Button>
+                    </CardContent>
+                  </Card>
+              ))}
+            </div>
+            {myTeams.length === 0 && <p className="text-gray-500">Você ainda não gerencia nenhum time.</p>}
           </div>
-        </div>
 
-        {/* Available Teams */}
-        <div>
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
-            <h2 className="text-xl font-semibold text-gray-900">Times Disponíveis</h2>
-            
-            {/* Filters */}
-            <div className="flex space-x-4">
+          {/* Times Disponíveis */}
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Times Disponíveis</h2>
+            {/* Filtros */}
+            <div className="flex flex-col sm:flex-row justify-between mb-6 space-y-4 sm:space-y-0">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  placeholder="Buscar times..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
+                    placeholder="Buscar por times"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 w-64"
                 />
               </div>
               <Select value={sportFilter} onValueChange={setSportFilter}>
@@ -199,89 +205,69 @@ const Teams = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="Futebol">Futebol</SelectItem>
-                  <SelectItem value="Vôlei">Vôlei</SelectItem>
-                  <SelectItem value="Basquete">Basquete</SelectItem>
-                  <SelectItem value="Tênis">Tênis</SelectItem>
-                  <SelectItem value="Corrida">Corrida</SelectItem>
+                  {sports.map((sport) => (
+                      <SelectItem key={sport.id} value={sport.id}>
+                        {sport.emoji || ''} {sport.name}
+                      </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAvailableTeams.map((team) => (
-              <Card key={team.id} className="hover:shadow-lg transition-shadow duration-300">
-                <CardHeader>
-                  <div className="flex items-center space-x-3 mb-3">
-                    <span className="text-3xl">{team.logo}</span>
-                    <div>
+            {/* Cards de Times Disponíveis */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredAvailableTeams.map((team) => (
+                  <Card key={team.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
                       <CardTitle className="text-lg">{team.name}</CardTitle>
-                      <Badge variant="secondary" className="text-xs">{team.sport}</Badge>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                      <span className="text-sm font-medium">{team.rating}</span>
-                    </div>
-                    {team.recruiting && (
-                      <Badge className="bg-green-100 text-green-800 text-xs">
-                        Recrutando
+                      <Badge variant="secondary">
+                        {getSport(team.sport)?.emoji || ''} {getSport(team.sport_id)?.name || 'Esporte não definido'}
                       </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <p className="text-gray-600 text-sm">{team.description}</p>
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span>{team.members}/{team.maxMembers} membros</span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Trophy className="w-4 h-4 text-gray-400" />
-                      <span>{team.wins}V - {team.losses}D</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-2 text-sm text-gray-600">
-                    <Avatar className="w-5 h-5">
-                      <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${team.captain}`} />
-                      <AvatarFallback className="text-xs">{team.captain.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <span>Capitão: {team.captain}</span>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Ver Detalhes
-                    </Button>
-                    <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700">
-                      Solicitar Entrada
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {filteredAvailableTeams.length === 0 && (
-            <div className="text-center py-12">
-              <div className="text-gray-400 mb-4">
-                <Users className="w-12 h-12 mx-auto" />
-              </div>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum time encontrado</h3>
-              <p className="text-gray-600 mb-4">Tente ajustar os filtros ou criar seu próprio time.</p>
-              <Button asChild>
-                <Link to="/create-team">Criar Meu Time</Link>
-              </Button>
+                    </CardHeader>
+                    <CardContent>
+                      <Button
+                          size="sm"
+                          variant="outline"
+                          className="w-full mb-2"
+                          onClick={() => handleShowDetails(team)}
+                      >
+                        <Info className="w-4 h-4 mr-1" />
+                        Ver Detalhes
+                      </Button>
+                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 w-full" onClick={() => handleJoinTeam(team.id)}>
+                        Ingressar
+                      </Button>
+                    </CardContent>
+                  </Card>
+              ))}
             </div>
-          )}
+
+            {filteredAvailableTeams.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">Nenhum time disponível encontrado.</p>
+                </div>
+            )}
+          </div>
         </div>
+
+        {/* Modal de Detalhes */}
+        {isModalOpen && selectedTeam && (
+            <Modal title={selectedTeam.name} description="Detalhes do Time" onClose={() => setIsModalOpen(false)}>
+              <h3 className="text-lg font-semibold">{selectedTeam.name}</h3>
+              <p className="text-sm text-gray-600">{selectedTeam.description || 'Sem descrição disponível.'}</p>
+              <div className="flex flex-col gap-2 mt-4">
+            <span>
+              Esporte: {getSport(selectedTeam.sport)?.emoji || ''} {getSport(selectedTeam.sport_id)?.name || 'Esporte não definido'}
+            </span>
+                <span>Local: {selectedTeam.location || 'N/A'}</span>
+              </div>
+            </Modal>
+        )}
+
+
       </div>
-    </div>
+
+
   );
 };
 
