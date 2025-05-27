@@ -7,107 +7,98 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, MapPin, Users, Plus, Search, Filter } from 'lucide-react';
+import { Calendar, MapPin, Users, Plus, Search } from 'lucide-react';
+import { useEvents } from '@/hooks/useEvents';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { useToast } from '@/hooks/use-toast';
 
 const Events = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sportFilter, setSportFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
-
-  const [events] = useState([
-    {
-      id: 1,
-      title: 'Futebol Society - Domingo',
-      sport: 'Futebol',
-      date: '2024-12-01',
-      time: '09:00',
-      location: 'Campo do Bairro Central',
-      participants: 18,
-      maxParticipants: 20,
-      price: 'R$ 25,00',
-      organizer: 'João Silva',
-      status: 'Vagas Abertas',
-      description: 'Partida amistosa de futebol society. Venha se divertir!'
-    },
-    {
-      id: 2,
-      title: 'Vôlei de Praia',
-      sport: 'Vôlei',
-      date: '2024-12-03',
-      time: '18:00',
-      location: 'Praia de Copacabana',
-      participants: 6,
-      maxParticipants: 8,
-      price: 'Gratuito',
-      organizer: 'Maria Santos',
-      status: 'Vagas Abertas',
-      description: 'Vôlei de praia ao pôr do sol. Nível iniciante/intermediário.'
-    },
-    {
-      id: 3,
-      title: 'Torneio de Tênis',
-      sport: 'Tênis',
-      date: '2024-12-05',
-      time: '14:00',
-      location: 'Clube Recreativo',
-      participants: 12,
-      maxParticipants: 16,
-      price: 'R$ 40,00',
-      organizer: 'Carlos Oliveira',
-      status: 'Inscrições Abertas',
-      description: 'Torneio de tênis para todos os níveis. Premiação para os top 3.'
-    },
-    {
-      id: 4,
-      title: 'Basquete 3x3',
-      sport: 'Basquete',
-      date: '2024-12-07',
-      time: '16:00',
-      location: 'Quadra da Escola Municipal',
-      participants: 12,
-      maxParticipants: 12,
-      price: 'R$ 15,00',
-      organizer: 'Ana Costa',
-      status: 'Lotado',
-      description: 'Torneio de basquete 3x3. Formato rápido e dinâmico.'
-    },
-    {
-      id: 5,
-      title: 'Corrida 5K',
-      sport: 'Corrida',
-      date: '2024-12-08',
-      time: '07:00',
-      location: 'Parque da Cidade',
-      participants: 45,
-      maxParticipants: 50,
-      price: 'R$ 20,00',
-      organizer: 'Pedro Lima',
-      status: 'Vagas Abertas',
-      description: 'Corrida matinal de 5K no parque. Kit participant incluso.'
-    }
-  ]);
+  
+  const { events, loading, joinEvent } = useEvents();
+  const { user } = useAuth();
+  const { toast } = useToast();
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Vagas Abertas':
+      case 'open':
         return 'bg-green-100 text-green-800';
-      case 'Inscrições Abertas':
-        return 'bg-blue-100 text-blue-800';
-      case 'Lotado':
+      case 'full':
         return 'bg-red-100 text-red-800';
-      default:
+      case 'closed':
         return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'open':
+        return 'Vagas Abertas';
+      case 'full':
+        return 'Lotado';
+      case 'closed':
+        return 'Encerrado';
+      default:
+        return 'Disponível';
     }
   };
 
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.location.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSport = sportFilter === 'all' || event.sport === sportFilter;
+    const matchesSport = sportFilter === 'all' || event.sports?.name === sportFilter;
     const matchesStatus = statusFilter === 'all' || event.status === statusFilter;
     
     return matchesSearch && matchesSport && matchesStatus;
   });
+
+  const handleJoinEvent = async (eventId: string) => {
+    if (!user) {
+      toast({
+        title: "Login necessário",
+        description: "Você precisa estar logado para participar de eventos",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await joinEvent(eventId);
+      toast({
+        title: "Sucesso!",
+        description: "Você foi inscrito no evento",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao participar",
+        description: error.message || "Tente novamente mais tarde",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const isUserParticipant = (event: any) => {
+    return event.event_participants?.some((p: any) => p.user_id === user?.id);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="animate-pulse space-y-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -162,9 +153,9 @@ const Events = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos os status</SelectItem>
-                  <SelectItem value="Vagas Abertas">Vagas Abertas</SelectItem>
-                  <SelectItem value="Inscrições Abertas">Inscrições Abertas</SelectItem>
-                  <SelectItem value="Lotado">Lotado</SelectItem>
+                  <SelectItem value="open">Vagas Abertas</SelectItem>
+                  <SelectItem value="full">Lotado</SelectItem>
+                  <SelectItem value="closed">Encerrado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -179,44 +170,64 @@ const Events = () => {
                 <div className="flex justify-between items-start mb-2">
                   <CardTitle className="text-lg">{event.title}</CardTitle>
                   <Badge className={getStatusColor(event.status)} variant="secondary">
-                    {event.status}
+                    {getStatusText(event.status)}
                   </Badge>
                 </div>
                 <div className="flex items-center space-x-2 text-sm text-gray-600">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
-                    {event.sport}
+                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs flex items-center space-x-1">
+                    <span>{event.sports?.emoji}</span>
+                    <span>{event.sports?.name}</span>
                   </span>
-                  <span className="font-medium text-green-600">{event.price}</span>
+                  <span className="font-medium text-green-600">
+                    {event.price > 0 ? `R$ ${event.price.toFixed(2)}` : 'Gratuito'}
+                  </span>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-gray-600 text-sm">{event.description}</p>
+                {event.description && (
+                  <p className="text-gray-600 text-sm">{event.description}</p>
+                )}
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center space-x-2 text-gray-600">
                     <Calendar className="w-4 h-4" />
-                    <span>{new Date(event.date).toLocaleDateString('pt-BR')} às {event.time}</span>
+                    <span>
+                      {new Date(event.event_date).toLocaleDateString('pt-BR')} às {event.event_time}
+                    </span>
                   </div>
                   <div className="flex items-center space-x-2 text-gray-600">
                     <MapPin className="w-4 h-4" />
                     <span>{event.location}</span>
                   </div>
-                  <div className="flex items-center space-x-2 text-gray-600">
-                    <Users className="w-4 h-4" />
-                    <span>{event.participants}/{event.maxParticipants} participantes</span>
-                  </div>
+                  {event.max_participants && (
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Users className="w-4 h-4" />
+                      <span>
+                        {event.event_participants?.length || 0}/{event.max_participants} participantes
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-between pt-4">
-                  <span className="text-sm text-gray-500">Por {event.organizer}</span>
+                  <span className="text-sm text-gray-500">
+                    Por {event.profiles?.full_name || 'Organizador'}
+                  </span>
                   <div className="space-x-2">
                     <Button variant="outline" size="sm">
                       Ver Detalhes
                     </Button>
-                    {event.status !== 'Lotado' && (
-                      <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                    {event.status === 'open' && !isUserParticipant(event) && (
+                      <Button 
+                        size="sm" 
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => handleJoinEvent(event.id)}
+                      >
                         Participar
                       </Button>
+                    )}
+                    {isUserParticipant(event) && (
+                      <Badge variant="secondary">Inscrito</Badge>
                     )}
                   </div>
                 </div>

@@ -10,28 +10,45 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Calendar, MapPin, Users, DollarSign } from 'lucide-react';
+import { useEvents } from '@/hooks/useEvents';
+import { useSports } from '@/hooks/useSports';
+import { useAuth } from '@/components/auth/AuthProvider';
 
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { createEvent } = useEvents();
+  const { sports } = useSports();
+  const { user } = useAuth();
   
   const [formData, setFormData] = useState({
     title: '',
-    sport: '',
+    sport_id: '',
     description: '',
-    date: '',
-    time: '',
+    event_date: '',
+    event_time: '',
     location: '',
-    maxParticipants: '',
+    max_participants: '',
     price: '',
-    eventType: 'amistoso'
+    event_type: 'amistoso'
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!user) {
+      toast({
+        title: "Login necessário",
+        description: "Você precisa estar logado para criar eventos",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate required fields
-    if (!formData.title || !formData.sport || !formData.date || !formData.time || !formData.location) {
+    if (!formData.title || !formData.sport_id || !formData.event_date || !formData.event_time || !formData.location) {
       toast({
         title: "Erro ao criar evento",
         description: "Por favor, preencha todos os campos obrigatórios",
@@ -40,15 +57,38 @@ const CreateEvent = () => {
       return;
     }
 
-    // Simulate event creation
-    console.log('Creating event:', formData);
-    
-    toast({
-      title: "Evento criado com sucesso!",
-      description: "Seu evento foi publicado e está disponível para participação",
-    });
-    
-    navigate('/events');
+    setLoading(true);
+
+    try {
+      await createEvent({
+        title: formData.title,
+        sport_id: formData.sport_id,
+        description: formData.description || null,
+        event_date: formData.event_date,
+        event_time: formData.event_time,
+        location: formData.location,
+        max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        price: formData.price ? parseFloat(formData.price) : 0,
+        event_type: formData.event_type,
+        status: 'open'
+      });
+
+      toast({
+        title: "Evento criado com sucesso!",
+        description: "Seu evento foi publicado e está disponível para participação",
+      });
+      
+      navigate('/events');
+    } catch (error: any) {
+      console.error('Error creating event:', error);
+      toast({
+        title: "Erro ao criar evento",
+        description: error.message || "Tente novamente mais tarde",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -92,19 +132,19 @@ const CreateEvent = () => {
                 
                 <div className="space-y-2">
                   <Label htmlFor="sport">Esporte *</Label>
-                  <Select value={formData.sport} onValueChange={(value) => handleInputChange('sport', value)}>
+                  <Select value={formData.sport_id} onValueChange={(value) => handleInputChange('sport_id', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione o esporte" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="futebol">Futebol</SelectItem>
-                      <SelectItem value="volei">Vôlei</SelectItem>
-                      <SelectItem value="basquete">Basquete</SelectItem>
-                      <SelectItem value="tenis">Tênis</SelectItem>
-                      <SelectItem value="corrida">Corrida</SelectItem>
-                      <SelectItem value="natacao">Natação</SelectItem>
-                      <SelectItem value="ciclismo">Ciclismo</SelectItem>
-                      <SelectItem value="outros">Outros</SelectItem>
+                      {sports.map((sport) => (
+                        <SelectItem key={sport.id} value={sport.id}>
+                          <span className="flex items-center space-x-2">
+                            <span>{sport.emoji}</span>
+                            <span>{sport.name}</span>
+                          </span>
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -112,7 +152,7 @@ const CreateEvent = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="eventType">Tipo de Evento</Label>
-                <Select value={formData.eventType} onValueChange={(value) => handleInputChange('eventType', value)}>
+                <Select value={formData.event_type} onValueChange={(value) => handleInputChange('event_type', value)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
@@ -157,8 +197,8 @@ const CreateEvent = () => {
                   <Input
                     id="date"
                     type="date"
-                    value={formData.date}
-                    onChange={(e) => handleInputChange('date', e.target.value)}
+                    value={formData.event_date}
+                    onChange={(e) => handleInputChange('event_date', e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
                     required
                   />
@@ -169,8 +209,8 @@ const CreateEvent = () => {
                   <Input
                     id="time"
                     type="time"
-                    value={formData.time}
-                    onChange={(e) => handleInputChange('time', e.target.value)}
+                    value={formData.event_time}
+                    onChange={(e) => handleInputChange('event_time', e.target.value)}
                     required
                   />
                 </div>
@@ -212,18 +252,20 @@ const CreateEvent = () => {
                     id="maxParticipants"
                     type="number"
                     placeholder="Ex: 20"
-                    value={formData.maxParticipants}
-                    onChange={(e) => handleInputChange('maxParticipants', e.target.value)}
+                    value={formData.max_participants}
+                    onChange={(e) => handleInputChange('max_participants', e.target.value)}
                     min="2"
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="price">Valor por Pessoa</Label>
+                  <Label htmlFor="price">Valor por Pessoa (R$)</Label>
                   <div className="relative">
                     <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                     <Input
                       id="price"
+                      type="number"
+                      step="0.01"
                       placeholder="Ex: 25.00 (deixe vazio se gratuito)"
                       value={formData.price}
                       onChange={(e) => handleInputChange('price', e.target.value)}
@@ -242,14 +284,16 @@ const CreateEvent = () => {
               variant="outline" 
               onClick={() => navigate('/events')}
               className="w-full sm:w-auto"
+              disabled={loading}
             >
               Cancelar
             </Button>
             <Button 
               type="submit"
               className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+              disabled={loading}
             >
-              Criar Evento
+              {loading ? "Criando..." : "Criar Evento"}
             </Button>
           </div>
         </form>

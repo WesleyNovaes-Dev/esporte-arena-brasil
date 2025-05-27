@@ -30,19 +30,40 @@ const Register = () => {
       return;
     }
 
+    if (password.length < 6) {
+      toast({
+        title: "Erro no cadastro",
+        description: "A senha deve ter pelo menos 6 caracteres",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
       await register(email, password, name);
       toast({
         title: "Cadastro realizado com sucesso!",
-        description: "Bem-vindo ao Agenda Esporte",
+        description: "Verifique seu e-mail para confirmar a conta",
       });
       navigate('/dashboard');
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      
+      let errorMessage = "Tente novamente mais tarde";
+      
+      if (error.message?.includes('User already registered')) {
+        errorMessage = "Este e-mail já está cadastrado";
+      } else if (error.message?.includes('Password')) {
+        errorMessage = "Senha deve ter pelo menos 6 caracteres";
+      } else if (error.message?.includes('Email')) {
+        errorMessage = "E-mail inválido";
+      }
+      
       toast({
         title: "Erro no cadastro",
-        description: "Tente novamente mais tarde",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -80,6 +101,7 @@ const Register = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -91,6 +113,7 @@ const Register = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="space-y-2">
@@ -102,7 +125,10 @@ const Register = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  disabled={loading}
+                  minLength={6}
                 />
+                <p className="text-xs text-gray-500">Mínimo de 6 caracteres</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar senha</Label>
@@ -113,6 +139,7 @@ const Register = () => {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
+                  disabled={loading}
                 />
               </div>
             </CardContent>
