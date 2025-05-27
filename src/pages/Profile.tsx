@@ -1,245 +1,214 @@
 
-import Navbar from '../components/layout/Navbar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../components/auth/AuthProvider';
-import { Star, Trophy, Calendar, Users, Edit } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import Navbar from '../components/layout/Navbar';
 
 const Profile = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    full_name: '',
+    username: '',
+    bio: '',
+    city: '',
+    state: '',
+    phone: '',
+    birth_date: '',
+  });
 
-  const userStats = {
-    eventsParticipated: 23,
-    teamsCreated: 2,
-    averageRating: 4.8,
-    rankingPosition: 47,
-    wins: 15,
-    losses: 8,
-    goals: 12,
-    assists: 7
-  };
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        full_name: profile.full_name || '',
+        username: profile.username || '',
+        bio: profile.bio || '',
+        city: profile.city || '',
+        state: profile.state || '',
+        phone: profile.phone || '',
+        birth_date: profile.birth_date || '',
+      });
+    }
+  }, [profile]);
 
-  const sports = [
-    { name: 'Futebol', level: 'Avançado', games: 18 },
-    { name: 'Vôlei', level: 'Intermediário', games: 5 },
-    { name: 'Tênis', level: 'Iniciante', games: 2 }
-  ];
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
 
-  const achievements = [
-    { title: 'Artilheiro', description: 'Maior artilheiro do mês', icon: '⚽', date: 'Nov 2024' },
-    { title: 'MVP', description: 'Melhor jogador da partida', icon: '🏆', date: 'Out 2024' },
-    { title: 'Fair Play', description: 'Comportamento exemplar', icon: '🤝', date: 'Set 2024' },
-    { title: 'Participativo', description: '20+ eventos participados', icon: '📅', date: 'Ago 2024' }
-  ];
+    setLoading(true);
 
-  const recentActivity = [
-    { type: 'event', title: 'Participou do Futebol Society', date: '2024-11-25', icon: Calendar },
-    { type: 'achievement', title: 'Conquistou medalha de Artilheiro', date: '2024-11-20', icon: Trophy },
-    { type: 'team', title: 'Entrou no time Thunders FC', date: '2024-11-15', icon: Users },
-    { type: 'event', title: 'Organizou Vôlei de Praia', date: '2024-11-10', icon: Calendar }
-  ];
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          ...formData,
+          updated_at: new Date().toISOString(),
+        });
 
-  const getLevelColor = (level: string) => {
-    switch (level) {
-      case 'Avançado':
-        return 'bg-green-100 text-green-800';
-      case 'Intermediário':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'Iniciante':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Perfil atualizado!",
+        description: "Suas informações foram salvas com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar perfil",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
+
+  const displayName = profile?.full_name || user?.email || 'Usuário';
+  const userInitial = displayName.charAt(0).toUpperCase();
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Profile Header */}
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center space-y-4 md:space-y-0 md:space-x-6">
-              <Avatar className="w-24 h-24">
-                <AvatarImage src={user?.avatar} alt={user?.name} />
-                <AvatarFallback className="text-2xl">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </AvatarFallback>
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Meu Perfil</h1>
+          <p className="text-gray-600">Gerencie suas informações pessoais</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <Card className="lg:col-span-1">
+            <CardHeader className="text-center">
+              <Avatar className="w-24 h-24 mx-auto mb-4">
+                <AvatarImage src={profile?.avatar_url || ''} alt={displayName} />
+                <AvatarFallback className="text-2xl">{userInitial}</AvatarFallback>
               </Avatar>
-              
-              <div className="flex-1">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">{user?.name}</h1>
-                    <p className="text-gray-600 mb-2">{user?.email}</p>
-                    <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span>Membro desde Nov 2024</span>
-                      <span>•</span>
-                      <span>São Paulo, SP</span>
-                    </div>
-                  </div>
-                  <Button variant="outline" className="mt-4 sm:mt-0">
-                    <Edit className="w-4 h-4 mr-2" />
-                    Editar Perfil
-                  </Button>
+              <CardTitle>{displayName}</CardTitle>
+              <CardDescription>{user?.email}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Cidade:</span>
+                  <span>{profile?.city || 'Não informado'}</span>
                 </div>
-                
-                <div className="flex items-center space-x-4 mt-4">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-5 h-5 text-yellow-400 fill-current" />
-                    <span className="font-semibold">{userStats.averageRating}</span>
-                    <span className="text-gray-500">(23 avaliações)</span>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Ranking: <span className="font-semibold text-green-600">#{userStats.rankingPosition}</span>
-                  </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Estado:</span>
+                  <span>{profile?.state || 'Não informado'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Username:</span>
+                  <span>{profile?.username || 'Não informado'}</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column */}
-          <div className="lg:col-span-2 space-y-8">
-            {/* Statistics */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Estatísticas Gerais</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600">{userStats.eventsParticipated}</div>
-                    <div className="text-sm text-gray-600">Eventos</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-600">{userStats.wins}</div>
-                    <div className="text-sm text-gray-600">Vitórias</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-yellow-600">{userStats.goals}</div>
-                    <div className="text-sm text-gray-600">Gols</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-600">{userStats.assists}</div>
-                    <div className="text-sm text-gray-600">Assistências</div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Sports */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Esportes Praticados</CardTitle>
-                <CardDescription>
-                  Seus esportes e níveis de habilidade
-                </CardDescription>
-              </CardHeader>
+          {/* Edit Form */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle>Editar Informações</CardTitle>
+              <CardDescription>
+                Atualize suas informações pessoais abaixo
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleSubmit}>
               <CardContent className="space-y-4">
-                {sports.map((sport, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div>
-                      <h3 className="font-semibold">{sport.name}</h3>
-                      <p className="text-sm text-gray-600">{sport.games} jogos disputados</p>
-                    </div>
-                    <Badge className={getLevelColor(sport.level)} variant="secondary">
-                      {sport.level}
-                    </Badge>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Achievements */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Conquistas</CardTitle>
-                <CardDescription>
-                  Suas medalhas e conquistas no esporte
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {achievements.map((achievement, index) => (
-                    <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg">
-                      <span className="text-2xl">{achievement.icon}</span>
-                      <div>
-                        <h4 className="font-semibold">{achievement.title}</h4>
-                        <p className="text-sm text-gray-600">{achievement.description}</p>
-                        <p className="text-xs text-gray-500">{achievement.date}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* Performance Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Performance</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Vitórias</span>
-                      <span>{Math.round((userStats.wins / (userStats.wins + userStats.losses)) * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-green-600 h-2 rounded-full" 
-                        style={{ width: `${(userStats.wins / (userStats.wins + userStats.losses)) * 100}%` }}
-                      ></div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="full_name">Nome completo</Label>
+                    <Input
+                      id="full_name"
+                      value={formData.full_name}
+                      onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
+                      placeholder="Seu nome completo"
+                    />
                   </div>
-                  
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Avaliação</span>
-                      <span>{userStats.averageRating}/5.0</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-yellow-500 h-2 rounded-full" 
-                        style={{ width: `${(userStats.averageRating / 5) * 100}%` }}
-                      ></div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="username">Username</Label>
+                    <Input
+                      id="username"
+                      value={formData.username}
+                      onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                      placeholder="Seu username único"
+                    />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
 
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Atividade Recente</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <activity.icon className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.title}</p>
-                      <p className="text-xs text-gray-500">
-                        {new Date(activity.date).toLocaleDateString('pt-BR')}
-                      </p>
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bio">Bio</Label>
+                  <Textarea
+                    id="bio"
+                    value={formData.bio}
+                    onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                    placeholder="Conte um pouco sobre você e seus esportes favoritos..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Cidade</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                      placeholder="Sua cidade"
+                    />
                   </div>
-                ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="state">Estado</Label>
+                    <Input
+                      id="state"
+                      value={formData.state}
+                      onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
+                      placeholder="Seu estado"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="(11) 99999-9999"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="birth_date">Data de Nascimento</Label>
+                    <Input
+                      id="birth_date"
+                      type="date"
+                      value={formData.birth_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, birth_date: e.target.value }))}
+                    />
+                  </div>
+                </div>
               </CardContent>
-            </Card>
-          </div>
+              <CardFooter>
+                <Button 
+                  type="submit" 
+                  className="w-full bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600"
+                  disabled={loading}
+                >
+                  {loading ? "Salvando..." : "Salvar Alterações"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
         </div>
       </div>
     </div>
