@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string): Promise<void> => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -97,10 +97,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
 
-    return data;
+    // Send welcome back email
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'login',
+          to: email,
+          data: {
+            userName: data.user?.user_metadata?.full_name || email
+          }
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send login email:', emailError);
+    }
   };
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string): Promise<void> => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -115,7 +128,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       throw error;
     }
 
-    return data;
+    // Send welcome email
+    try {
+      await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'welcome',
+          to: email,
+          data: {
+            userName: name
+          }
+        }
+      });
+    } catch (emailError) {
+      console.error('Failed to send welcome email:', emailError);
+    }
   };
 
   const logout = async () => {
