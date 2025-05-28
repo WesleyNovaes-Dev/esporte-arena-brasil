@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 interface CreateTeamData {
@@ -40,7 +41,7 @@ export const useTeams = () => {
                 description: teamData.description,
                 sport_id: teamData.sport_id,
                 owner_id: teamData.owner_id,
-                logo_url: teamData.logo_url || null, // Suporte para valores opcionais
+                logo_url: teamData.logo_url || null,
                 city: teamData.city,
                 state: teamData.state,
                 max_members: teamData.max_members,
@@ -53,11 +54,11 @@ export const useTeams = () => {
             console.error('Erro ao salvar o time no banco:', error.message);
             throw error;
         }
-        return data; // Retorna os dados do time criado
+        return data;
     };
 
     return {
-        getTeams, // Função para buscar times
-        createTeam, // Função para criar time
+        getTeams,
+        createTeam,
     };
 };

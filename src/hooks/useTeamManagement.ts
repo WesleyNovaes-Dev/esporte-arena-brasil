@@ -59,7 +59,18 @@ export const useTeamManagement = (teamId: string) => {
         .eq('status', 'active');
 
       if (error) throw error;
-      setMembers(data || []);
+      
+      const formattedMembers = (data || []).map(member => ({
+        ...member,
+        team_roles: member.team_roles ? {
+          ...member.team_roles,
+          permissions: Array.isArray(member.team_roles.permissions) 
+            ? member.team_roles.permissions 
+            : []
+        } : undefined
+      }));
+      
+      setMembers(formattedMembers);
     } catch (error) {
       console.error('Erro ao buscar membros do time:', error);
     }
@@ -75,7 +86,13 @@ export const useTeamManagement = (teamId: string) => {
         .eq('team_id', teamId);
 
       if (error) throw error;
-      setRoles(data || []);
+      
+      const formattedRoles = (data || []).map(role => ({
+        ...role,
+        permissions: Array.isArray(role.permissions) ? role.permissions : []
+      }));
+      
+      setRoles(formattedRoles);
     } catch (error) {
       console.error('Erro ao buscar funções do time:', error);
     }

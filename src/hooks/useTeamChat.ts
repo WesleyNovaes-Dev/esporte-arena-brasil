@@ -138,7 +138,7 @@ export const usePrivateChat = () => {
         .from('private_messages')
         .select(`
           *,
-          profiles:sender_id (
+          sender_profile:sender_id (
             full_name,
             avatar_url
           )
@@ -147,7 +147,13 @@ export const usePrivateChat = () => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      setConversations(data || []);
+      
+      const formattedMessages = (data || []).map(message => ({
+        ...message,
+        profiles: message.sender_profile
+      }));
+      
+      setConversations(formattedMessages);
     } catch (error) {
       console.error('Erro ao buscar mensagens privadas:', error);
     } finally {
@@ -175,7 +181,7 @@ export const usePrivateChat = () => {
         }])
         .select(`
           *,
-          profiles:sender_id (
+          sender_profile:sender_id (
             full_name,
             avatar_url
           )
@@ -202,7 +208,8 @@ export const usePrivateChat = () => {
         table: 'private_messages',
         filter: `receiver_id=eq.${user?.id}`
       }, (payload) => {
-        setConversations(prev => [...prev, payload.new as PrivateMessage]);
+        const newMessage = payload.new as PrivateMessage;
+        setConversations(prev => [...prev, newMessage]);
       })
       .subscribe();
 
