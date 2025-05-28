@@ -1,34 +1,36 @@
+
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, Info, Edit } from 'lucide-react';
+import { Search, Plus, Info, Edit, Bell } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Modal } from '@/components/ui/modal';
-import { useSports } from '@/hooks/useSports'; // Importa o hook de esportes
-
-import teamManagementModalProps from "@/components/TeamManagementModalProps.tsx";
+import { useSports } from '@/hooks/useSports';
+import { useNotifications } from '@/hooks/useNotifications';
+import { useAuth } from '@/components/auth/AuthProvider';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 
 const Teams = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sportFilter, setSportFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
 
-  const [myTeams, setMyTeams] = useState<any[]>([]); // Meus times
-  const [availableTeams, setAvailableTeams] = useState<any[]>([]); // Times disponíveis
-  const [selectedTeam, setSelectedTeam] = useState<any>(null); // Time selecionado para o modal
-  const [isModalOpen, setIsModalOpen] = useState(false); // Controle do modal
+  const [myTeams, setMyTeams] = useState<any[]>([]);
+  const [availableTeams, setAvailableTeams] = useState<any[]>([]);
+  const [selectedTeam, setSelectedTeam] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { sports, getSport, loading: sportsLoading } = useSports(); // Hook com a função getSport
-
-
-  const [selectedTeamForManagement, setSelectedTeamForManagement] = useState<any>(null);
-
+  const { sports, getSport, loading: sportsLoading } = useSports();
+  const { unreadCount } = useNotifications();
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Função para buscar "Meus Times" do banco
   const fetchMyTeams = async () => {
@@ -40,10 +42,25 @@ const Teams = () => {
       const user = sessionData?.session?.user;
       if (!user) throw new Error('Usuário não autenticado.');
 
-      const { data, error } = await supabase.from('teams').select('*').eq('owner_id', user.id); // Filtra times administrados pelo usuário
-      if (error) throw error;
+      // Buscar times que o usuário possui ou é membro
+      const { data: memberTeams, error: memberError } = await supabase
+        .from('team_members')
+        .select(`
+          *,
+          teams (*)
+        `)
+        .eq('user_id', user.id)
+        .eq('status', 'active');
 
-      setMyTeams(data || []);
+      if (memberError) throw memberError;
+
+      const teams = memberTeams?.map(member => ({
+        ...member.teams,
+        memberRole: member.role,
+        isOwner: member.teams.owner_id === user.id
+      })) || [];
+
+      setMyTeams(teams);
     } catch (err: any) {
       console.error('Erro ao buscar "Meus Times":', err.message);
       setError(err.message);
@@ -62,12 +79,29 @@ const Teams = () => {
       const user = sessionData?.session?.user;
       if (!user) throw new Error('Usuário não autenticado.');
 
-      const { data, error } = await supabase.from('teams').select('*').neq('owner_id', user.id); // Times que não pertencem ao usuário
+      // Buscar times que o usuário não faz parte
+      const { data: userTeams } = await supabase
+        .from('team_members')
+        .select('team_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+
+      const userTeamIds = userTeams?.map(t => t.team_id) || [];
+
+      const query = supabase
+        .from('teams')
+        .select('*')
+        .eq('recruitment_open', true);
+
+      if (userTeamIds.length > 0) {
+        query.not('id', 'in', `(${userTeamIds.join(',')})`);
+      }
+
+      const { data, error } = await query;
+
       if (error) throw error;
 
       setAvailableTeams(data || []);
-      console.log(data);
-      console.log(data);
     } catch (err: any) {
       console.error('Erro ao buscar "Times Disponíveis":', err.message);
       setError(err.message);
@@ -87,15 +121,14 @@ const Teams = () => {
     const matchesSearch =
         team.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (team.description?.toLowerCase() || '').includes(searchTerm.toLowerCase());
-    const matchesSport = sportFilter === 'all' || team.sport === sportFilter;
+    const matchesSport = sportFilter === 'all' || team.sport_id === sportFilter;
 
     return matchesSearch && matchesSport;
   });
 
   // Função para abrir modal com detalhes
   const handleShowDetails = (team: any) => {
-    setSelectedTeam(team);
-    setIsModalOpen(true);
+    navigate(`/teams/${team.id}`);
   };
 
   // Função para ingressar em um time
@@ -110,10 +143,37 @@ const Teams = () => {
 
       const { error } = await supabase
           .from('team_members')
-          .insert([{ team_id: teamId, user_id: user.id }]); // Relacionamento: time e usuário
+          .insert([{ 
+            team_id: teamId, 
+            user_id: user.id,
+            role: 'player',
+            status: 'active'
+          }]);
+      
       if (error) throw error;
 
+      // Buscar dados do time para notificação
+      const { data: teamData } = await supabase
+        .from('teams')
+        .select('name, owner_id')
+        .eq('id', teamId)
+        .single();
+
+      if (teamData) {
+        // Criar notificação para o dono do time
+        await supabase
+          .from('notifications')
+          .insert([{
+            user_id: teamData.owner_id,
+            title: 'Novo membro no time!',
+            content: `${user.user_metadata?.full_name || user.email} entrou no time ${teamData.name}`,
+            type: 'new_member'
+          }]);
+      }
+
       alert('Solicitação de participação enviada!');
+      fetchMyTeams();
+      fetchAvailableTeams();
     } catch (err: any) {
       console.error('Erro ao ingressar no time:', err.message);
       alert('Não foi possível ingressar no time.');
@@ -149,13 +209,34 @@ const Teams = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Meus Times</h1>
               <p className="text-gray-600">Gerencie seus times ou encontre novos para participar!</p>
             </div>
-            <Button asChild className="bg-green-600 hover:bg-green-700">
-              <Link to="/create-team" className="flex items-center space-x-2">
-                <Plus className="w-4 h-4" />
-                <span>Criar Time</span>
-              </Link>
-            </Button>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <Badge variant="destructive" className="absolute -top-2 -right-2 rounded-full w-5 h-5 text-xs p-0 flex items-center justify-center">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </Button>
+              <Button asChild className="bg-green-600 hover:bg-green-700">
+                <Link to="/create-team" className="flex items-center space-x-2">
+                  <Plus className="w-4 h-4" />
+                  <span>Criar Time</span>
+                </Link>
+              </Button>
+            </div>
           </div>
+
+          {/* Centro de Notificações */}
+          {showNotifications && (
+            <div className="mb-8">
+              <NotificationCenter />
+            </div>
+          )}
 
           {/* Meus Times */}
           <div className="mb-12">
@@ -165,24 +246,32 @@ const Teams = () => {
                   <Card key={team.id} className="hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle className="text-lg">{team.name}</CardTitle>
-                      <Badge variant="secondary">
-                        {getSport(team.sport)?.emoji || ''} {getSport(team.sport_id)?.name || 'Esporte não definido'}
-                      </Badge>
+                      <div className="flex space-x-2">
+                        <Badge variant="secondary">
+                          {getSport(team.sport_id)?.emoji || ''} {getSport(team.sport_id)?.name || 'Esporte não definido'}
+                        </Badge>
+                        {team.isOwner && (
+                          <Badge variant="destructive">Dono</Badge>
+                        )}
+                        {!team.isOwner && (
+                          <Badge variant="outline">{team.memberRole}</Badge>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent>
                       <Button
                           size="sm"
                           className="bg-green-600 hover:bg-green-700 w-full"
-                          onClick={() => alert('Funcionalidade Gerenciar ainda não implementada')}
+                          onClick={() => navigate(`/teams/${team.id}`)}
                       >
                         <Edit className="w-4 h-4 mr-1" />
-                        Gerenciar
+                        {team.isOwner ? 'Gerenciar' : 'Ver Time'}
                       </Button>
                     </CardContent>
                   </Card>
               ))}
             </div>
-            {myTeams.length === 0 && <p className="text-gray-500">Você ainda não gerencia nenhum time.</p>}
+            {myTeams.length === 0 && <p className="text-gray-500">Você ainda não faz parte de nenhum time.</p>}
           </div>
 
           {/* Times Disponíveis */}
@@ -221,7 +310,7 @@ const Teams = () => {
                     <CardHeader>
                       <CardTitle className="text-lg">{team.name}</CardTitle>
                       <Badge variant="secondary">
-                        {getSport(team.sport)?.emoji || ''} {getSport(team.sport_id)?.name || 'Esporte não definido'}
+                        {getSport(team.sport_id)?.emoji || ''} {getSport(team.sport_id)?.name || 'Esporte não definido'}
                       </Badge>
                     </CardHeader>
                     <CardContent>
@@ -234,7 +323,11 @@ const Teams = () => {
                         <Info className="w-4 h-4 mr-1" />
                         Ver Detalhes
                       </Button>
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700 w-full" onClick={() => handleJoinTeam(team.id)}>
+                      <Button 
+                        size="sm" 
+                        className="bg-blue-600 hover:bg-blue-700 w-full" 
+                        onClick={() => handleJoinTeam(team.id)}
+                      >
                         Ingressar
                       </Button>
                     </CardContent>
@@ -252,22 +345,23 @@ const Teams = () => {
 
         {/* Modal de Detalhes */}
         {isModalOpen && selectedTeam && (
-            <Modal title={selectedTeam.name} description="Detalhes do Time" onClose={() => setIsModalOpen(false)}>
+            <Modal 
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              title={selectedTeam.name} 
+              description="Detalhes do Time"
+            >
               <h3 className="text-lg font-semibold">{selectedTeam.name}</h3>
               <p className="text-sm text-gray-600">{selectedTeam.description || 'Sem descrição disponível.'}</p>
               <div className="flex flex-col gap-2 mt-4">
-            <span>
-              Esporte: {getSport(selectedTeam.sport)?.emoji || ''} {getSport(selectedTeam.sport_id)?.name || 'Esporte não definido'}
-            </span>
-                <span>Local: {selectedTeam.location || 'N/A'}</span>
+                <span>
+                  Esporte: {getSport(selectedTeam.sport_id)?.emoji || ''} {getSport(selectedTeam.sport_id)?.name || 'Esporte não definido'}
+                </span>
+                <span>Local: {selectedTeam.city}, {selectedTeam.state}</span>
               </div>
             </Modal>
         )}
-
-
       </div>
-
-
   );
 };
 
