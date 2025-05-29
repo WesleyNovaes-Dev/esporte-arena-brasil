@@ -67,7 +67,7 @@ export const useTeamManagement = (teamId: string) => {
             ? (member.team_roles.permissions as any[]).map(p => String(p))
             : []
         } : undefined
-      }));
+      })) as TeamMember[];
       
       setMembers(formattedMembers);
     } catch (error) {
@@ -91,7 +91,7 @@ export const useTeamManagement = (teamId: string) => {
         permissions: Array.isArray(role.permissions) 
           ? (role.permissions as any[]).map(p => String(p))
           : []
-      }));
+      })) as TeamRole[];
       
       setRoles(formattedRoles);
     } catch (error) {
