@@ -12,6 +12,15 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { useSports } from '@/hooks/useSports';
 import { Users, MapPin, Calendar, Settings } from 'lucide-react';
 
+
+import TextareaAutosize from 'react-textarea-autosize';
+
+
+
+
+import { useTeamChat } from '@/hooks/useTeamChat';
+import { Input } from '@headlessui/react';
+
 const TeamDetails: React.FC = () => {
   const { teamId } = useParams<{ teamId: string }>();
   const { user } = useAuth();
@@ -21,6 +30,24 @@ const TeamDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isManaging, setIsManaging] = useState(false);
   const [userMembership, setUserMembership] = useState<any>(null);
+
+
+
+
+  const { teamMessages, sendTeamMessage } = useTeamChat(teamId);
+
+  const [newMessage, setNewMessage] = useState('');
+
+    const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+    
+    try {
+      await sendTeamMessage(newMessage);
+      setNewMessage('');
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+    }
+  };
 
   useEffect(() => {
     if (teamId) {
@@ -303,7 +330,74 @@ const TeamDetails: React.FC = () => {
             )}
           </CardContent>
         </Card>
+
+        <Card ></Card>
+
+           <Card className="mb-10 w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Chat do Time</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col space-y-4">
+          {/* Lista de mensagens */}
+          <div className="h-64 md:h-80 overflow-y-auto border rounded-lg p-4 space-y-3 bg-gray-50">
+            {teamMessages.length === 0 ? (
+              <div className="text-center text-gray-500">
+                Nenhuma mensagem ainda. Seja o primeiro a enviar!
+              </div>
+            ) : (
+              teamMessages.map((message) => (
+                <div key={message.id} className="flex items-start space-x-3">
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={message.profiles?.avatar_url || undefined} />
+                    <AvatarFallback>
+                      {message.profiles?.full_name?.charAt(0) || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">
+                        {message.profiles?.full_name || 'Usuário'}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(message.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </p>
+                    </div>
+                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                  </div>
+                </div>
+              ))
+            )}
+            <div />
+          </div>
+
+          {/* Campo de nova mensagem */}
+          <div className="flex items-end space-x-2">
+            <TextareaAutosize
+              className="flex-1 resize-none rounded-md border border-gray-300 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Digite sua mensagem..."
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+              minRows={1}
+              maxRows={6}
+            />
+            <Button onClick={handleSendMessage}>Enviar</Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
       </div>
+
+      
     </div>
   );
 };

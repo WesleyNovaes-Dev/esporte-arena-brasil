@@ -297,6 +297,9 @@ const TeamManagementPanel: React.FC<TeamManagementPanelProps> = ({ team, isOwner
           </Card>
         </TabsContent>
 
+
+   
+
         {/* Partidas */}
         <TabsContent value="matches">
           <Card>

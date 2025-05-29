@@ -52,10 +52,11 @@ const Index = () => {
               acompanhar sua evolução no esporte. Conecte-se com atletas da sua região!
             </p>
             <div className="space-x-4">
-              <Button size="lg" asChild className="bg-white text-green-600 hover:bg-gray-100">
-                <Link to="/register">Começar Agora 2222</Link>
+              <Button size="lg" variant="outline" asChild className="bg-white text-green-600 hover:bg-gray-100">
+                <Link to="/register">Começar Agora</Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="border-white text-white hover:bg-white hover:text-green-600">
+              
+              <Button size="lg" variant="outline" asChild className="bg-white text-green-600 hover:bg-gray-100">
                 <Link to="/login">Já tenho conta</Link>
               </Button>
             </div>
