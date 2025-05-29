@@ -15,9 +15,6 @@ interface CreateTeamData {
 }
 
 export const useTeams = () => {
-    /**
-     * Consulta todos os times no Supabase.
-     */
     const getTeams = async () => {
         const { data, error } = await supabase
             .from('teams')
@@ -28,12 +25,9 @@ export const useTeams = () => {
             throw error;
         }
 
-        return data; // Retorna a lista de times
+        return data;
     };
 
-    /**
-     * Cria um novo time no banco de dados.
-     */
     const createTeam = async (teamData: CreateTeamData) => {
         const { data, error } = await supabase.from('teams').insert([
             {

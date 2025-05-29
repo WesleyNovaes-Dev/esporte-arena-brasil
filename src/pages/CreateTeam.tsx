@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useTeams } from '@/hooks/useTeams';
-import { useSports } from '@/hooks/useSports'; // Hook para buscar esportes
+import { useSports } from '@/hooks/useSports';
 import { Users, Trophy, MapPin } from 'lucide-react';
 
 const CreateTeam = () => {
@@ -18,7 +18,7 @@ const CreateTeam = () => {
   const { toast } = useToast();
   const { createTeam } = useTeams();
   const { user } = useAuth();
-  const { sports, loading: loadingSports } = useSports(); // Lista de esportes dinâmicos
+  const { sports, loading: loadingSports } = useSports();
 
   // Estado para armazenar os dados do formulário
   const [formData, setFormData] = useState({
@@ -60,19 +60,16 @@ const CreateTeam = () => {
 
     try {
       await createTeam({
-        id: crypto.randomUUID(), // Gera um ID único
         name: formData.name,
         description: formData.description,
-        sport_id: formData.sport, // Envia o UUID do esporte
-        owner_id: user.id, // ID do usuário autenticado que está criando o time
+        sport_id: formData.sport,
+        owner_id: user.id,
         logo_url: formData.logoUrl || null,
         city: formData.city,
         state: formData.state,
-        max_members: formData.maxMembers ? parseInt(formData.maxMembers) : null,
+        max_members: formData.maxMembers ? parseInt(formData.maxMembers) : 20,
         recruitment_open: formData.recruitmentOpen,
         team_type: formData.teamType,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       });
 
       toast({
