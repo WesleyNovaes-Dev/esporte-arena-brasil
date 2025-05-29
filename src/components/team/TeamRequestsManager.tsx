@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface TeamRequest {
   id: string;
-  user_id: string;
+  profile_id: string;
   team_id: string;
   status: string;
   created_at: string;
@@ -69,7 +69,7 @@ const TeamRequestsManager: React.FC<TeamRequestsManagerProps> = ({ teamId, onReq
             .from('team_members')
             .insert({
               team_id: teamId,
-              user_id: request.user_id,
+              user_id: request.profile_id,
               role: 'player',
               status: 'active'
             });
