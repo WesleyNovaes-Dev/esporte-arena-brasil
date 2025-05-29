@@ -8,37 +8,23 @@ export const fetchPrivateMessages = async (userId: string): Promise<PrivateMessa
   const { data, error } = await supabase
     .from('private_messages')
     .select(`
-      id,
-      team_id,
-      sender_id,
-      receiver_id,
-      content,
-      message_type,
-      media_url,
-      is_read,
-      created_at,
-      sender_profile:profiles!private_messages_sender_id_fkey (
+      *,
+      sender:profiles!private_messages_sender_id_fkey (
         full_name,
         avatar_url
       )
     `)
     .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-    .order('created_at', { ascending: true });
+    .order('created_at', { ascending: false });
 
   if (error) throw error;
   
-  return (data || []).map(message => ({
-    id: message.id,
-    team_id: message.team_id,
-    sender_id: message.sender_id,
-    receiver_id: message.receiver_id,
-    content: message.content,
-    message_type: message.message_type,
-    media_url: message.media_url,
-    is_read: message.is_read,
-    created_at: message.created_at,
-    profiles: message.sender_profile as { full_name: string; avatar_url: string | null }
+  const formattedMessages: PrivateMessage[] = (data || []).map(message => ({
+    ...message,
+    profiles: message.sender || { full_name: '', avatar_url: null }
   })) as PrivateMessage[];
+  
+  return formattedMessages;
 };
 
 export const sendPrivateMessage = async (
@@ -47,45 +33,18 @@ export const sendPrivateMessage = async (
   senderId: string,
   content: string,
   messageType: string = 'text'
-): Promise<PrivateMessage> => {
+) => {
   const { data, error } = await supabase
     .from('private_messages')
     .insert([{
-      team_id: teamId,
       sender_id: senderId,
       receiver_id: receiverId,
+      team_id: teamId,
       content,
-      message_type: messageType
-    }])
-    .select(`
-      id,
-      team_id,
-      sender_id,
-      receiver_id,
-      content,
-      message_type,
-      media_url,
-      is_read,
-      created_at,
-      sender_profile:profiles!private_messages_sender_id_fkey (
-        full_name,
-        avatar_url
-      )
-    `)
-    .single();
+      message_type: messageType,
+      is_read: false
+    }]);
 
   if (error) throw error;
-  
-  return {
-    id: data.id,
-    team_id: data.team_id,
-    sender_id: data.sender_id,
-    receiver_id: data.receiver_id,
-    content: data.content,
-    message_type: data.message_type,
-    media_url: data.media_url,
-    is_read: data.is_read,
-    created_at: data.created_at,
-    profiles: data.sender_profile as { full_name: string; avatar_url: string | null }
-  } as PrivateMessage;
+  return data;
 };

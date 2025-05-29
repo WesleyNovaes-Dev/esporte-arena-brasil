@@ -19,10 +19,7 @@ export const fetchTeamMessages = async (teamId: string): Promise<TeamMessage[]> 
 
   if (error) throw error;
   
-  return (data || []).map(message => ({
-    ...message,
-    profiles: message.profiles as { full_name: string; avatar_url: string | null }
-  })) as TeamMessage[];
+  return (data || []) as TeamMessage[];
 };
 
 export const sendTeamMessage = async (
@@ -31,7 +28,7 @@ export const sendTeamMessage = async (
   content: string,
   messageType: string = 'text',
   mediaUrl?: string
-): Promise<TeamMessage> => {
+) => {
   const { data, error } = await supabase
     .from('team_messages')
     .insert([{
@@ -39,21 +36,10 @@ export const sendTeamMessage = async (
       sender_id: senderId,
       content,
       message_type: messageType,
-      media_url: mediaUrl
-    }])
-    .select(`
-      *,
-      profiles:sender_id (
-        full_name,
-        avatar_url
-      )
-    `)
-    .single();
+      media_url: mediaUrl,
+      is_pinned: false
+    }]);
 
   if (error) throw error;
-  
-  return {
-    ...data,
-    profiles: data.profiles as { full_name: string; avatar_url: string | null }
-  } as TeamMessage;
+  return data;
 };
