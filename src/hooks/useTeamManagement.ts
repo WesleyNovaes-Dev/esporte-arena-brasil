@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -64,7 +65,7 @@ export const useTeamManagement = (teamId: string) => {
         team_roles: member.team_roles ? {
           ...member.team_roles,
           permissions: Array.isArray(member.team_roles.permissions) 
-            ? (member.team_roles.permissions as string[])
+            ? (member.team_roles.permissions as any[]).map(p => String(p))
             : []
         } : undefined
       }));
@@ -88,7 +89,9 @@ export const useTeamManagement = (teamId: string) => {
       
       const formattedRoles: TeamRole[] = (data || []).map(role => ({
         ...role,
-        permissions: Array.isArray(role.permissions) ? (role.permissions as string[]) : []
+        permissions: Array.isArray(role.permissions) 
+          ? (role.permissions as any[]).map(p => String(p))
+          : []
       }));
       
       setRoles(formattedRoles);

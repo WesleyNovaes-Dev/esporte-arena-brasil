@@ -6,7 +6,7 @@ interface CreateTeamData {
     description: string;
     sport_id: string;
     owner_id: string;
-    logo_url?: string;
+    logo_url?: string | null;
     city: string;
     state: string;
     max_members: number;

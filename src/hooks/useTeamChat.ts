@@ -146,7 +146,7 @@ export const usePrivateChat = () => {
           media_url,
           is_read,
           created_at,
-          sender_profile:profiles!sender_id (
+          profiles!private_messages_sender_id_fkey (
             full_name,
             avatar_url
           )
@@ -156,20 +156,7 @@ export const usePrivateChat = () => {
 
       if (error) throw error;
       
-      const formattedMessages: PrivateMessage[] = (data || []).map(message => ({
-        id: message.id,
-        team_id: message.team_id,
-        sender_id: message.sender_id,
-        receiver_id: message.receiver_id,
-        content: message.content,
-        message_type: message.message_type,
-        media_url: message.media_url,
-        is_read: message.is_read,
-        created_at: message.created_at,
-        profiles: message.sender_profile
-      }));
-      
-      setConversations(formattedMessages);
+      setConversations(data || []);
     } catch (error) {
       console.error('Erro ao buscar mensagens privadas:', error);
     } finally {
@@ -205,7 +192,7 @@ export const usePrivateChat = () => {
           media_url,
           is_read,
           created_at,
-          sender_profile:profiles!sender_id (
+          profiles!private_messages_sender_id_fkey (
             full_name,
             avatar_url
           )
@@ -213,21 +200,7 @@ export const usePrivateChat = () => {
         .single();
 
       if (error) throw error;
-      
-      const formattedMessage: PrivateMessage = {
-        id: data.id,
-        team_id: data.team_id,
-        sender_id: data.sender_id,
-        receiver_id: data.receiver_id,
-        content: data.content,
-        message_type: data.message_type,
-        media_url: data.media_url,
-        is_read: data.is_read,
-        created_at: data.created_at,
-        profiles: data.sender_profile
-      };
-      
-      return formattedMessage;
+      return data;
     } catch (error) {
       console.error('Erro ao enviar mensagem privada:', error);
       throw error;
