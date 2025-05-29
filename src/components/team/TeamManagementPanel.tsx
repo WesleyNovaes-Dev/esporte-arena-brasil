@@ -23,6 +23,7 @@ import {
 import { useTeamManagement } from '@/hooks/useTeamManagement';
 import { useTeamChat } from '@/hooks/useTeamChat';
 import { useSports } from '@/hooks/useSports';
+import TeamRequestsManager from './TeamRequestsManager';
 
 interface TeamManagementPanelProps {
   team: any;
@@ -30,7 +31,7 @@ interface TeamManagementPanelProps {
 }
 
 const TeamManagementPanel: React.FC<TeamManagementPanelProps> = ({ team, isOwner }) => {
-  const { members, roles, loading, addMember, removeMember, updateMemberRole } = useTeamManagement(team.id);
+  const { members, roles, loading, addMember, removeMember, updateMemberRole, refetch } = useTeamManagement(team.id);
   const { teamMessages, sendTeamMessage } = useTeamChat(team.id);
   const { getSport } = useSports();
   const [newMessage, setNewMessage] = useState('');
@@ -109,8 +110,9 @@ const TeamManagementPanel: React.FC<TeamManagementPanelProps> = ({ team, isOwner
 
       {/* Tabs de Administração */}
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="grid w-full grid-cols-7">
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="requests">Solicitações</TabsTrigger>
           <TabsTrigger value="members">Membros</TabsTrigger>
           <TabsTrigger value="chat">Chat</TabsTrigger>
           <TabsTrigger value="matches">Partidas</TabsTrigger>
@@ -160,6 +162,11 @@ const TeamManagementPanel: React.FC<TeamManagementPanelProps> = ({ team, isOwner
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* Solicitações */}
+        <TabsContent value="requests">
+          <TeamRequestsManager teamId={team.id} onRequestUpdate={refetch} />
         </TabsContent>
 
         {/* Membros */}
@@ -246,25 +253,31 @@ const TeamManagementPanel: React.FC<TeamManagementPanelProps> = ({ team, isOwner
               <div className="space-y-4">
                 {/* Mensagens */}
                 <div className="h-64 overflow-y-auto border rounded-lg p-4 space-y-3">
-                  {teamMessages.map((message) => (
-                    <div key={message.id} className="flex space-x-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={message.profiles?.avatar_url || undefined} />
-                        <AvatarFallback>
-                          {message.profiles?.full_name?.charAt(0) || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <p className="text-sm font-medium">{message.profiles?.full_name}</p>
-                          <p className="text-xs text-gray-500">
-                            {new Date(message.created_at).toLocaleTimeString()}
-                          </p>
-                        </div>
-                        <p className="text-sm">{message.content}</p>
-                      </div>
+                  {teamMessages.length === 0 ? (
+                    <div className="text-center text-gray-500">
+                      Nenhuma mensagem ainda. Seja o primeiro a enviar!
                     </div>
-                  ))}
+                  ) : (
+                    teamMessages.map((message) => (
+                      <div key={message.id} className="flex space-x-3">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={message.profiles?.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {message.profiles?.full_name?.charAt(0) || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <p className="text-sm font-medium">{message.profiles?.full_name}</p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(message.created_at).toLocaleTimeString()}
+                            </p>
+                          </div>
+                          <p className="text-sm">{message.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 {/* Input de Nova Mensagem */}

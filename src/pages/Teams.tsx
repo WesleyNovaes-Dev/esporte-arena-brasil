@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
@@ -141,14 +140,30 @@ const Teams = () => {
       const user = sessionData?.session?.user;
       if (!user) throw new Error('Usuário não autenticado.');
 
+      // Verificar se já existe uma solicitação pendente
+      const { data: existingRequest } = await supabase
+        .from('team_invitations')
+        .select('*')
+        .eq('team_id', teamId)
+        .eq('profile_id', user.id)
+        .eq('status', 'pending')
+        .eq('type', 'request')
+        .single();
+
+      if (existingRequest) {
+        alert('Você já tem uma solicitação pendente para este time.');
+        return;
+      }
+
+      // Criar solicitação em vez de adicionar diretamente
       const { error } = await supabase
-          .from('team_members')
-          .insert([{ 
-            team_id: teamId, 
-            user_id: user.id,
-            role: 'player',
-            status: 'active'
-          }]);
+        .from('team_invitations')
+        .insert([{ 
+          team_id: teamId, 
+          profile_id: user.id,
+          type: 'request',
+          status: 'pending'
+        }]);
       
       if (error) throw error;
 
@@ -165,18 +180,17 @@ const Teams = () => {
           .from('notifications')
           .insert([{
             user_id: teamData.owner_id,
-            title: 'Novo membro no time!',
-            content: `${user.user_metadata?.full_name || user.email} entrou no time ${teamData.name}`,
-            type: 'new_member'
+            title: 'Nova solicitação de entrada!',
+            content: `${user.user_metadata?.full_name || user.email} solicitou entrada no time ${teamData.name}`,
+            type: 'team_request'
           }]);
       }
 
-      alert('Solicitação de participação enviada!');
-      fetchMyTeams();
+      alert('Solicitação enviada! Aguarde a aprovação do administrador do time.');
       fetchAvailableTeams();
     } catch (err: any) {
-      console.error('Erro ao ingressar no time:', err.message);
-      alert('Não foi possível ingressar no time.');
+      console.error('Erro ao solicitar entrada no time:', err.message);
+      alert('Não foi possível enviar a solicitação.');
     } finally {
       setLoading(false);
     }

@@ -17,6 +17,7 @@ import Events from "./pages/Events";
 import CreateEvent from "./pages/CreateEvent";
 import Teams from "./pages/Teams";
 import CreateTeam from "./pages/CreateTeam";
+import TeamDetails from "./pages/TeamDetails";
 import Championships from "./pages/Championships";
 import Rankings from "./pages/Rankings";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,11 @@ const App = () => (
             <Route path="/teams" element={
               <ProtectedRoute>
                 <Teams />
+              </ProtectedRoute>
+            } />
+            <Route path="/teams/:teamId" element={
+              <ProtectedRoute>
+                <TeamDetails />
               </ProtectedRoute>
             } />
             <Route path="/create-team" element={
