@@ -5,7 +5,7 @@ import { usePrivateChat } from '@/hooks/useTeamChat';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, Search, ArrowLeft } from 'lucide-react';
+import { Send, Search, ArrowLeft, MessageCircle } from 'lucide-react';
 import { PrivateMessage } from '@/types/chat';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
