@@ -9,16 +9,280 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      championship_admins: {
+        Row: {
+          championship_id: string | null
+          created_at: string
+          id: string
+          invited_by: string | null
+          role: string
+          user_id: string | null
+        }
+        Insert: {
+          championship_id?: string | null
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          user_id?: string | null
+        }
+        Update: {
+          championship_id?: string | null
+          created_at?: string
+          id?: string
+          invited_by?: string | null
+          role?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_admins_championship_id_fkey"
+            columns: ["championship_id"]
+            isOneToOne: false
+            referencedRelation: "championships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      championship_costs: {
+        Row: {
+          category: string
+          championship_id: string | null
+          cost: number
+          created_at: string
+          created_by: string | null
+          id: string
+          item_description: string | null
+          item_name: string
+        }
+        Insert: {
+          category: string
+          championship_id?: string | null
+          cost: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_description?: string | null
+          item_name: string
+        }
+        Update: {
+          category?: string
+          championship_id?: string | null
+          cost?: number
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_description?: string | null
+          item_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_costs_championship_id_fkey"
+            columns: ["championship_id"]
+            isOneToOne: false
+            referencedRelation: "championships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      championship_matches: {
+        Row: {
+          away_score: number | null
+          away_sets: number | null
+          away_team_id: string | null
+          championship_id: string | null
+          created_at: string
+          created_by: string | null
+          home_score: number | null
+          home_sets: number | null
+          home_team_id: string | null
+          id: string
+          location: string | null
+          match_date: string | null
+          observations: string | null
+          round_number: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          away_score?: number | null
+          away_sets?: number | null
+          away_team_id?: string | null
+          championship_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          home_score?: number | null
+          home_sets?: number | null
+          home_team_id?: string | null
+          id?: string
+          location?: string | null
+          match_date?: string | null
+          observations?: string | null
+          round_number?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          away_score?: number | null
+          away_sets?: number | null
+          away_team_id?: string | null
+          championship_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          home_score?: number | null
+          home_sets?: number | null
+          home_team_id?: string | null
+          id?: string
+          location?: string | null
+          match_date?: string | null
+          observations?: string | null
+          round_number?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_matches_away_team_id_fkey"
+            columns: ["away_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "championship_matches_championship_id_fkey"
+            columns: ["championship_id"]
+            isOneToOne: false
+            referencedRelation: "championships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "championship_matches_home_team_id_fkey"
+            columns: ["home_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      championship_messages: {
+        Row: {
+          championship_id: string | null
+          content: string
+          created_at: string
+          id: string
+          is_pinned: boolean
+          message_type: string
+          sender_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          championship_id?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          message_type?: string
+          sender_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          championship_id?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          message_type?: string
+          sender_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_messages_championship_id_fkey"
+            columns: ["championship_id"]
+            isOneToOne: false
+            referencedRelation: "championships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      championship_teams: {
+        Row: {
+          championship_id: string | null
+          draws: number
+          goals_against: number
+          goals_for: number
+          id: string
+          invited_at: string
+          losses: number
+          points: number
+          responded_at: string | null
+          status: string
+          team_id: string | null
+          wins: number
+        }
+        Insert: {
+          championship_id?: string | null
+          draws?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          invited_at?: string
+          losses?: number
+          points?: number
+          responded_at?: string | null
+          status?: string
+          team_id?: string | null
+          wins?: number
+        }
+        Update: {
+          championship_id?: string | null
+          draws?: number
+          goals_against?: number
+          goals_for?: number
+          id?: string
+          invited_at?: string
+          losses?: number
+          points?: number
+          responded_at?: string | null
+          status?: string
+          team_id?: string | null
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "championship_teams_championship_id_fkey"
+            columns: ["championship_id"]
+            isOneToOne: false
+            referencedRelation: "championships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "championship_teams_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       championships: {
         Row: {
           championship_type: string | null
           created_at: string | null
+          current_round: number | null
           description: string | null
           end_date: string | null
           id: string
+          is_private: boolean | null
+          match_generation: string | null
+          max_teams: number | null
           name: string
           organizer_id: string | null
+          points_per_draw: number | null
+          points_per_loss: number | null
+          points_per_win: number | null
           prize_pool: number | null
+          scoring_system: string | null
           sport_id: string | null
           start_date: string | null
           status: string | null
@@ -26,12 +290,20 @@ export type Database = {
         Insert: {
           championship_type?: string | null
           created_at?: string | null
+          current_round?: number | null
           description?: string | null
           end_date?: string | null
           id?: string
+          is_private?: boolean | null
+          match_generation?: string | null
+          max_teams?: number | null
           name: string
           organizer_id?: string | null
+          points_per_draw?: number | null
+          points_per_loss?: number | null
+          points_per_win?: number | null
           prize_pool?: number | null
+          scoring_system?: string | null
           sport_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -39,12 +311,20 @@ export type Database = {
         Update: {
           championship_type?: string | null
           created_at?: string | null
+          current_round?: number | null
           description?: string | null
           end_date?: string | null
           id?: string
+          is_private?: boolean | null
+          match_generation?: string | null
+          max_teams?: number | null
           name?: string
           organizer_id?: string | null
+          points_per_draw?: number | null
+          points_per_loss?: number | null
+          points_per_win?: number | null
           prize_pool?: number | null
+          scoring_system?: string | null
           sport_id?: string | null
           start_date?: string | null
           status?: string | null
