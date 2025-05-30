@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Home, Calendar, User, Trophy, Users } from 'lucide-react';
+import { Menu, Home, Calendar, User, Trophy, Users, MessageSquare } from 'lucide-react';
 
 const Navbar = () => {
   const { user, profile, logout } = useAuth();
@@ -22,6 +22,7 @@ const Navbar = () => {
     { label: 'Dashboard', path: '/dashboard', icon: Home },
     { label: 'Eventos', path: '/events', icon: Calendar },
     { label: 'Times', path: '/teams', icon: Users },
+    { label: 'Chat', path: '/chat', icon: MessageSquare },
     { label: 'Campeonatos', path: '/championships', icon: Trophy },
     { label: 'Rankings', path: '/rankings', icon: Trophy },
   ];

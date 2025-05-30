@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./components/auth/AuthProvider";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import PrivateChatIcon from "./components/chat/PrivateChatIcon";
 
 // Pages
 import Index from "./pages/Index";
@@ -20,6 +21,7 @@ import CreateTeam from "./pages/CreateTeam";
 import TeamDetails from "./pages/TeamDetails";
 import Championships from "./pages/Championships";
 import Rankings from "./pages/Rankings";
+import PrivateChat from "./pages/PrivateChat";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -87,7 +89,24 @@ const App = () => (
                 <Rankings />
               </ProtectedRoute>
             } />
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <PrivateChat />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
+          </Routes>
+          
+          {/* Private Chat Icon - Only show on protected routes */}
+          <Routes>
+            <Route path="/dashboard" element={<PrivateChatIcon />} />
+            <Route path="/profile" element={<PrivateChatIcon />} />
+            <Route path="/events" element={<PrivateChatIcon />} />
+            <Route path="/create-event" element={<PrivateChatIcon />} />
+            <Route path="/teams/*" element={<PrivateChatIcon />} />
+            <Route path="/create-team" element={<PrivateChatIcon />} />
+            <Route path="/championships" element={<PrivateChatIcon />} />
+            <Route path="/rankings" element={<PrivateChatIcon />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
