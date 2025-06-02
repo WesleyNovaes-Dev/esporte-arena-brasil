@@ -49,8 +49,11 @@ export const EventAdminsTab: React.FC<EventAdminsTabProps> = ({
       const { data, error } = await supabase
         .from('event_admins')
         .select(`
-          *,
-          profiles(full_name, avatar_url)
+          id,
+          user_id,
+          role,
+          created_at,
+          profiles!inner(full_name, avatar_url)
         `)
         .eq('event_id', eventId);
 

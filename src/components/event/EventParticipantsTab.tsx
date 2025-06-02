@@ -58,8 +58,11 @@ export const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
       const { data, error } = await supabase
         .from('event_join_requests')
         .select(`
-          *,
-          profiles(full_name, avatar_url)
+          id,
+          user_id,
+          message,
+          requested_at,
+          profiles!inner(full_name, avatar_url)
         `)
         .eq('event_id', eventId)
         .eq('status', 'pending');
