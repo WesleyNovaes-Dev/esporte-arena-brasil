@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,13 +51,32 @@ export const EventAdminsTab: React.FC<EventAdminsTabProps> = ({
           id,
           user_id,
           role,
-          created_at,
-          profiles!inner(full_name, avatar_url)
+          created_at
         `)
         .eq('event_id', eventId);
 
       if (error) throw error;
-      setAdmins(data || []);
+
+      // Fetch profiles separately
+      if (data && data.length > 0) {
+        const userIds = data.map(admin => admin.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Combine data
+        const adminsWithProfiles = data.map(admin => ({
+          ...admin,
+          profiles: profilesData?.find(profile => profile.id === admin.user_id) || null
+        }));
+
+        setAdmins(adminsWithProfiles);
+      } else {
+        setAdmins(data || []);
+      }
     } catch (error) {
       console.error('Error loading admins:', error);
     }

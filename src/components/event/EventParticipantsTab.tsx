@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -61,14 +60,33 @@ export const EventParticipantsTab: React.FC<EventParticipantsTabProps> = ({
           id,
           user_id,
           message,
-          requested_at,
-          profiles!inner(full_name, avatar_url)
+          requested_at
         `)
         .eq('event_id', eventId)
         .eq('status', 'pending');
 
       if (error) throw error;
-      setJoinRequests(data || []);
+
+      // Fetch profiles separately
+      if (data && data.length > 0) {
+        const userIds = data.map(request => request.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, full_name, avatar_url')
+          .in('id', userIds);
+
+        if (profilesError) throw profilesError;
+
+        // Combine data
+        const requestsWithProfiles = data.map(request => ({
+          ...request,
+          profiles: profilesData?.find(profile => profile.id === request.user_id) || null
+        }));
+
+        setJoinRequests(requestsWithProfiles);
+      } else {
+        setJoinRequests(data || []);
+      }
     } catch (error) {
       console.error('Error loading join requests:', error);
     }
