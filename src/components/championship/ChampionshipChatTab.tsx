@@ -15,9 +15,10 @@ interface ChampionshipMessage {
   message_type: string;
   is_pinned: boolean;
   created_at: string;
+  sender_id: string;
   profiles?: {
     full_name: string;
-  };
+  } | null;
 }
 
 interface ChampionshipChatTabProps {
@@ -54,8 +55,12 @@ const ChampionshipChatTab = ({ championshipId }: ChampionshipChatTabProps) => {
       const { data, error } = await supabase
         .from('championship_messages')
         .select(`
-          *,
-          profiles(full_name)
+          id,
+          content,
+          message_type,
+          is_pinned,
+          created_at,
+          sender_id
         `)
         .eq('championship_id', championshipId)
         .order('created_at', { ascending: true });
@@ -65,7 +70,23 @@ const ChampionshipChatTab = ({ championshipId }: ChampionshipChatTabProps) => {
         return;
       }
 
-      setMessages(data || []);
+      // Buscar informações dos usuários separadamente
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map(msg => msg.sender_id))];
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, full_name')
+          .in('id', userIds);
+
+        const messagesWithProfiles = data.map(msg => ({
+          ...msg,
+          profiles: profiles?.find(p => p.id === msg.sender_id) || null
+        }));
+
+        setMessages(messagesWithProfiles);
+      } else {
+        setMessages([]);
+      }
     };
 
     fetchMessages();

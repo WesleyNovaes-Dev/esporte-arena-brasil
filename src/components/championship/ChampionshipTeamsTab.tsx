@@ -59,7 +59,7 @@ const ChampionshipTeamsTab = ({ teams, isAdmin, championshipId, onTeamsUpdate }:
   const getStatusBadge = (status: string) => {
     const variants = {
       invited: 'default',
-      accepted: 'success',
+      accepted: 'outline',
       declined: 'destructive'
     } as const;
 

@@ -112,7 +112,7 @@ const ChampionshipMatchesTab = ({ matches, teams, isAdmin, championshipId, onMat
     const variants = {
       scheduled: 'default',
       in_progress: 'secondary',
-      completed: 'success',
+      completed: 'outline',
       cancelled: 'destructive'
     } as const;
 
