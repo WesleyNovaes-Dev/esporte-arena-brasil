@@ -120,6 +120,24 @@ export const useEvents = () => {
     return data;
   };
 
+  const requestToJoinEvent = async (eventId: string, message?: string) => {
+    if (!user) throw new Error('User must be logged in');
+
+    const { error } = await supabase
+      .from('event_join_requests')
+      .insert([
+        {
+          event_id: eventId,
+          user_id: user.id,
+          message: message
+        }
+      ]);
+
+    if (error) {
+      throw error;
+    }
+  };
+
   useEffect(() => {
     fetchEvents();
   }, []);
@@ -128,6 +146,7 @@ export const useEvents = () => {
     events,
     loading,
     createEvent,
+    requestToJoinEvent,
     refetch: fetchEvents
   };
 };

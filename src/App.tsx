@@ -16,6 +16,7 @@ import Teams from "./pages/Teams";
 import TeamDetails from "./pages/TeamDetails";
 import CreateTeam from "./pages/CreateTeam";
 import Events from "./pages/Events";
+import EventDetails from "./pages/EventDetails";
 import CreateEvent from "./pages/CreateEvent";
 import Championships from "./pages/Championships";
 import CreateChampionship from "./pages/CreateChampionship";
@@ -63,6 +64,7 @@ function App() {
                   } />
                   
                   <Route path="/events" element={<Events />} />
+                  <Route path="/events/:id" element={<EventDetails />} />
                   <Route path="/events/create" element={
                     <ProtectedRoute>
                       <CreateEvent />

@@ -422,6 +422,47 @@ export type Database = {
           },
         ]
       }
+      event_join_requests: {
+        Row: {
+          event_id: string | null
+          id: string
+          message: string | null
+          requested_at: string
+          responded_at: string | null
+          responded_by: string | null
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          event_id?: string | null
+          id?: string
+          message?: string | null
+          requested_at?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          event_id?: string | null
+          id?: string
+          message?: string | null
+          requested_at?: string
+          responded_at?: string | null
+          responded_by?: string | null
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_join_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_matches: {
         Row: {
           created_at: string
