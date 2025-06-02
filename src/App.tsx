@@ -1,117 +1,99 @@
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./components/auth/AuthProvider";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import PrivateChatIcon from "./components/chat/PrivateChatIcon";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import { Navbar } from "@/components/layout/Navbar";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
-// Pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import Teams from "./pages/Teams";
+import TeamDetails from "./pages/TeamDetails";
+import CreateTeam from "./pages/CreateTeam";
 import Events from "./pages/Events";
 import CreateEvent from "./pages/CreateEvent";
-import Teams from "./pages/Teams";
-import CreateTeam from "./pages/CreateTeam";
-import TeamDetails from "./pages/TeamDetails";
 import Championships from "./pages/Championships";
+import CreateChampionship from "./pages/CreateChampionship";
+import ChampionshipDetails from "./pages/ChampionshipDetails";
 import Rankings from "./pages/Rankings";
 import PrivateChat from "./pages/PrivateChat";
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
-    },
-  },
-});
+const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            } />
-            <Route path="/profile" element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } />
-            <Route path="/events" element={
-              <ProtectedRoute>
-                <Events />
-              </ProtectedRoute>
-            } />
-            <Route path="/create-event" element={
-              <ProtectedRoute>
-                <CreateEvent />
-              </ProtectedRoute>
-            } />
-            <Route path="/teams" element={
-              <ProtectedRoute>
-                <Teams />
-              </ProtectedRoute>
-            } />
-            <Route path="/teams/:teamId" element={
-              <ProtectedRoute>
-                <TeamDetails />
-              </ProtectedRoute>
-            } />
-            <Route path="/create-team" element={
-              <ProtectedRoute>
-                <CreateTeam />
-              </ProtectedRoute>
-            } />
-            <Route path="/championships" element={
-              <ProtectedRoute>
-                <Championships />
-              </ProtectedRoute>
-            } />
-            <Route path="/rankings" element={
-              <ProtectedRoute>
-                <Rankings />
-              </ProtectedRoute>
-            } />
-            <Route path="/chat" element={
-              <ProtectedRoute>
-                <PrivateChat />
-              </ProtectedRoute>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          
-          {/* Private Chat Icon - Only show on protected routes */}
-          <Routes>
-            <Route path="/dashboard" element={<PrivateChatIcon />} />
-            <Route path="/profile" element={<PrivateChatIcon />} />
-            <Route path="/events" element={<PrivateChatIcon />} />
-            <Route path="/create-event" element={<PrivateChatIcon />} />
-            <Route path="/teams/*" element={<PrivateChatIcon />} />
-            <Route path="/create-team" element={<PrivateChatIcon />} />
-            <Route path="/championships" element={<PrivateChatIcon />} />
-            <Route path="/rankings" element={<PrivateChatIcon />} />
-          </Routes>
+          <Toaster />
+          <BrowserRouter>
+            <div className="min-h-screen bg-gray-50">
+              <Navbar />
+              <main>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  
+                  {/* Protected Routes */}
+                  <Route path="/dashboard" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/profile" element={
+                    <ProtectedRoute>
+                      <Profile />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/teams" element={<Teams />} />
+                  <Route path="/teams/:id" element={<TeamDetails />} />
+                  <Route path="/teams/create" element={
+                    <ProtectedRoute>
+                      <CreateTeam />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/events" element={<Events />} />
+                  <Route path="/events/create" element={
+                    <ProtectedRoute>
+                      <CreateEvent />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="/championships" element={<Championships />} />
+                  <Route path="/championships/create" element={
+                    <ProtectedRoute>
+                      <CreateChampionship />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/championships/:id" element={<ChampionshipDetails />} />
+                  
+                  <Route path="/rankings" element={<Rankings />} />
+                  
+                  <Route path="/chat/:userId" element={
+                    <ProtectedRoute>
+                      <PrivateChat />
+                    </ProtectedRoute>
+                  } />
+                  
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </main>
+            </div>
+          </BrowserRouter>
         </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
 
 export default App;

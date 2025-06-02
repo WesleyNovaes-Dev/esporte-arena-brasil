@@ -12,11 +12,22 @@ export interface Event {
   event_date: string;
   event_time: string;
   location: string;
+  price: number | null;
+  status: string | null;
+  event_type: string | null;
   max_participants: number | null;
-  price: number;
-  event_type: string;
-  status: string;
-  created_at: string;
+  scoring_system: string;
+  match_generation: string;
+  points_per_win: number;
+  points_per_draw: number;
+  points_per_loss: number;
+  is_private: boolean;
+  allows_teams: boolean;
+  allows_individual: boolean;
+  registration_deadline: string | null;
+  current_round: number;
+  created_at: string | null;
+  updated_at: string | null;
   sports?: {
     name: string;
     emoji: string;
@@ -24,10 +35,6 @@ export interface Event {
   profiles?: {
     full_name: string;
   };
-  event_participants?: Array<{
-    user_id: string;
-    status: string;
-  }>;
 }
 
 interface CreateEventData {
@@ -37,10 +44,18 @@ interface CreateEventData {
   event_date: string;
   event_time: string;
   location: string;
-  max_participants?: number | null;
   price?: number;
   event_type?: string;
-  status?: string;
+  max_participants?: number;
+  scoring_system?: string;
+  match_generation?: string;
+  points_per_win?: number;
+  points_per_draw?: number;
+  points_per_loss?: number;
+  is_private?: boolean;
+  allows_teams?: boolean;
+  allows_individual?: boolean;
+  registration_deadline?: string | null;
 }
 
 export const useEvents = () => {
@@ -55,8 +70,7 @@ export const useEvents = () => {
         .select(`
           *,
           sports(name, emoji),
-          profiles(full_name),
-          event_participants(user_id, status)
+          profiles(full_name)
         `)
         .order('event_date', { ascending: true });
 
@@ -91,93 +105,19 @@ export const useEvents = () => {
       throw error;
     }
 
-    // Send event creation email
-    try {
-      await supabase.functions.invoke('send-email', {
-        body: {
-          type: 'event_created',
-          to: user.email,
-          data: {
-            eventTitle: eventData.title,
-            eventDate: eventData.event_date,
-            eventTime: eventData.event_time,
-            location: eventData.location,
-            organizerName: user.user_metadata?.full_name || user.email
-          }
-        }
-      });
-    } catch (emailError) {
-      console.error('Failed to send event creation email:', emailError);
-    }
-
-    fetchEvents(); // Refresh events
-    return data;
-  };
-
-  const joinEvent = async (eventId: string) => {
-    if (!user) throw new Error('User must be logged in');
-
-    const { error } = await supabase
-      .from('event_participants')
+    // Add user as admin of the event
+    await supabase
+      .from('event_admins')
       .insert([
         {
-          event_id: eventId,
+          event_id: data.id,
           user_id: user.id,
-          status: 'confirmed'
+          role: 'admin'
         }
       ]);
 
-    if (error) {
-      throw error;
-    }
-
-    // Get event details for email
-    const event = events.find(e => e.id === eventId);
-    
-    if (event) {
-      // Send confirmation email to participant
-      try {
-        await supabase.functions.invoke('send-email', {
-          body: {
-            type: 'event_joined',
-            to: user.email,
-            data: {
-              eventTitle: event.title,
-              eventDate: event.event_date,
-              eventTime: event.event_time,
-              location: event.location,
-              participantName: user.user_metadata?.full_name || user.email
-            }
-          }
-        });
-
-        // Send notification to organizer
-        const { data: organizerData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', event.organizer_id)
-          .single();
-
-        if (organizerData) {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              type: 'new_participant',
-              to: organizerData.id, // Will be resolved to email in the function
-              data: {
-                eventTitle: event.title,
-                participantName: user.user_metadata?.full_name || user.email,
-                eventDate: event.event_date,
-                eventTime: event.event_time
-              }
-            }
-          });
-        }
-      } catch (emailError) {
-        console.error('Failed to send participation emails:', emailError);
-      }
-    }
-
-    fetchEvents(); // Refresh events
+    fetchEvents();
+    return data;
   };
 
   useEffect(() => {
@@ -188,7 +128,6 @@ export const useEvents = () => {
     events,
     loading,
     createEvent,
-    joinEvent,
     refetch: fetchEvents
   };
 };

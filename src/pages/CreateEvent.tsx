@@ -1,180 +1,146 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useToast } from '@/hooks/use-toast';
-import { Calendar, MapPin, Users, DollarSign } from 'lucide-react';
-import { useEvents } from '@/hooks/useEvents';
+import { Switch } from '@/components/ui/switch';
 import { useSports } from '@/hooks/useSports';
-import { useAuth } from '@/components/auth/AuthProvider';
+import { useEvents } from '@/hooks/useEvents';
+import { toast } from 'sonner';
+import { CalendarDays, MapPin, Trophy } from 'lucide-react';
 
 const CreateEvent = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const { createEvent } = useEvents();
   const { sports } = useSports();
-  const { user } = useAuth();
-  
-  const [formData, setFormData] = useState({
+  const { createEvent } = useEvents();
+  const [loading, setLoading] = useState(false);
+
+  const [eventData, setEventData] = useState({
     title: '',
-    sport_id: '',
     description: '',
+    sport_id: '',
     event_date: '',
     event_time: '',
     location: '',
-    max_participants: '',
     price: '',
-    event_type: 'amistoso'
+    event_type: 'torneio',
+    max_participants: '',
+    scoring_system: 'points',
+    match_generation: 'manual',
+    points_per_win: 3,
+    points_per_draw: 1,
+    points_per_loss: 0,
+    is_private: false,
+    allows_teams: true,
+    allows_individual: true,
+    registration_deadline: ''
   });
-
-  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!user) {
-      toast({
-        title: "Login necessário",
-        description: "Você precisa estar logado para criar eventos",
-        variant: "destructive",
-      });
+    if (!eventData.title || !eventData.sport_id || !eventData.event_date || !eventData.event_time || !eventData.location) {
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
-
-    // Validate required fields
-    if (!formData.title || !formData.sport_id || !formData.event_date || !formData.event_time || !formData.location) {
-      toast({
-        title: "Erro ao criar evento",
-        description: "Por favor, preencha todos os campos obrigatórios",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
 
     try {
-      await createEvent({
-        title: formData.title,
-        sport_id: formData.sport_id,
-        description: formData.description || null,
-        event_date: formData.event_date,
-        event_time: formData.event_time,
-        location: formData.location,
-        max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
-        price: formData.price ? parseFloat(formData.price) : 0,
-        event_type: formData.event_type,
-        status: 'open'
-      });
-
-      toast({
-        title: "Evento criado com sucesso!",
-        description: "Seu evento foi publicado e está disponível para participação",
-      });
+      setLoading(true);
       
+      const submitData = {
+        ...eventData,
+        price: eventData.price ? parseFloat(eventData.price) : 0,
+        max_participants: eventData.max_participants ? parseInt(eventData.max_participants) : null,
+        registration_deadline: eventData.registration_deadline || null
+      };
+
+      await createEvent(submitData);
+      toast.success('Evento criado com sucesso!');
       navigate('/events');
-    } catch (error: any) {
-      console.error('Error creating event:', error);
-      toast({
-        title: "Erro ao criar evento",
-        description: error.message || "Tente novamente mais tarde",
-        variant: "destructive",
-      });
+    } catch (error) {
+      console.error('Erro ao criar evento:', error);
+      toast.error('Erro ao criar evento');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Criar Novo Evento</h1>
-          <p className="text-gray-600">Organize um evento esportivo e conecte-se com outros atletas</p>
+    <div className="container mx-auto px-4 py-8">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Trophy className="w-8 h-8" />
+            Criar Evento
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Organize um evento esportivo e convide participantes
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Informações Básicas */}
           <Card>
             <CardHeader>
               <CardTitle>Informações Básicas</CardTitle>
-              <CardDescription>
-                Defina os detalhes principais do seu evento esportivo
-              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Título do Evento *</Label>
-                  <Input
-                    id="title"
-                    placeholder="Ex: Futebol Society - Domingo"
-                    value={formData.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="sport">Esporte *</Label>
-                  <Select value={formData.sport_id} onValueChange={(value) => handleInputChange('sport_id', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o esporte" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sports.map((sport) => (
-                        <SelectItem key={sport.id} value={sport.id}>
-                          <span className="flex items-center space-x-2">
-                            <span>{sport.emoji}</span>
-                            <span>{sport.name}</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
+            <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="eventType">Tipo de Evento</Label>
-                <Select value={formData.event_type} onValueChange={(value) => handleInputChange('event_type', value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="amistoso">Partida Amistosa</SelectItem>
-                    <SelectItem value="campeonato">Campeonato</SelectItem>
-                    <SelectItem value="copa">Copa/Mata-mata</SelectItem>
-                    <SelectItem value="treino">Treino/Coletivo</SelectItem>
-                    <SelectItem value="beneficente">Evento Beneficente</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="title">Nome do Evento *</Label>
+                <Input
+                  id="title"
+                  value={eventData.title}
+                  onChange={(e) => setEventData({ ...eventData, title: e.target.value })}
+                  placeholder="Ex: Torneio de Futebol da Cidade"
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="description">Descrição</Label>
                 <Textarea
                   id="description"
-                  placeholder="Descreva seu evento, nível de habilidade esperado, regras especiais..."
-                  value={formData.description}
-                  onChange={(e) => handleInputChange('description', e.target.value)}
-                  rows={4}
+                  value={eventData.description}
+                  onChange={(e) => setEventData({ ...eventData, description: e.target.value })}
+                  placeholder="Descreva o evento..."
+                  rows={3}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sport">Esporte *</Label>
+                  <Select value={eventData.sport_id} onValueChange={(value) => setEventData({ ...eventData, sport_id: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o esporte" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sports.map((sport) => (
+                        <SelectItem key={sport.id} value={sport.id}>
+                          {sport.emoji} {sport.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="event_type">Tipo de Evento</Label>
+                  <Select value={eventData.event_type} onValueChange={(value) => setEventData({ ...eventData, event_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="torneio">Torneio</SelectItem>
+                      <SelectItem value="amistoso">Amistoso</SelectItem>
+                      <SelectItem value="campeonato">Campeonato</SelectItem>
+                      <SelectItem value="copa">Copa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -182,118 +148,211 @@ const CreateEvent = () => {
           {/* Data e Local */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5" />
-                <span>Data e Local</span>
+              <CardTitle className="flex items-center gap-2">
+                <CalendarDays className="w-5 h-5" />
+                Data e Local
               </CardTitle>
-              <CardDescription>
-                Defina quando e onde o evento acontecerá
-              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="date">Data *</Label>
+                  <Label htmlFor="event_date">Data do Evento *</Label>
                   <Input
-                    id="date"
+                    id="event_date"
                     type="date"
-                    value={formData.event_date}
-                    onChange={(e) => handleInputChange('event_date', e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
+                    value={eventData.event_date}
+                    onChange={(e) => setEventData({ ...eventData, event_date: e.target.value })}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="time">Horário *</Label>
+                  <Label htmlFor="event_time">Horário *</Label>
                   <Input
-                    id="time"
+                    id="event_time"
                     type="time"
-                    value={formData.event_time}
-                    onChange={(e) => handleInputChange('event_time', e.target.value)}
-                    required
+                    value={eventData.event_time}
+                    onChange={(e) => setEventData({ ...eventData, event_time: e.target.value })}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="location">Local *</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="location"
+                  value={eventData.location}
+                  onChange={(e) => setEventData({ ...eventData, location: e.target.value })}
+                  placeholder="Ex: Centro Esportivo Municipal"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="price">Taxa de Inscrição (R$)</Label>
                   <Input
-                    id="location"
-                    placeholder="Ex: Campo do Bairro Central, Rua das Flores, 123"
-                    value={formData.location}
-                    onChange={(e) => handleInputChange('location', e.target.value)}
-                    className="pl-10"
-                    required
+                    id="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={eventData.price}
+                    onChange={(e) => setEventData({ ...eventData, price: e.target.value })}
+                    placeholder="0.00"
                   />
                 </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="max_participants">Máximo de Participantes</Label>
+                  <Input
+                    id="max_participants"
+                    type="number"
+                    min="1"
+                    value={eventData.max_participants}
+                    onChange={(e) => setEventData({ ...eventData, max_participants: e.target.value })}
+                    placeholder="Ilimitado"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="registration_deadline">Prazo de Inscrição</Label>
+                <Input
+                  id="registration_deadline"
+                  type="datetime-local"
+                  value={eventData.registration_deadline}
+                  onChange={(e) => setEventData({ ...eventData, registration_deadline: e.target.value })}
+                />
               </div>
             </CardContent>
           </Card>
 
-          {/* Participantes e Financeiro */}
+          {/* Configurações do Evento */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Users className="w-5 h-5" />
-                <span>Participantes e Financeiro</span>
-              </CardTitle>
-              <CardDescription>
-                Configure vagas e valores do evento
-              </CardDescription>
+              <CardTitle>Configurações</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="maxParticipants">Máximo de Participantes</Label>
-                  <Input
-                    id="maxParticipants"
-                    type="number"
-                    placeholder="Ex: 20"
-                    value={formData.max_participants}
-                    onChange={(e) => handleInputChange('max_participants', e.target.value)}
-                    min="2"
-                  />
+                  <Label htmlFor="scoring_system">Sistema de Pontuação</Label>
+                  <Select value={eventData.scoring_system} onValueChange={(value) => setEventData({ ...eventData, scoring_system: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="points">Pontos Corridos</SelectItem>
+                      <SelectItem value="knockout">Mata-Mata</SelectItem>
+                      <SelectItem value="sets">Por Sets</SelectItem>
+                      <SelectItem value="custom">Personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-                
+
                 <div className="space-y-2">
-                  <Label htmlFor="price">Valor por Pessoa (R$)</Label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Label htmlFor="match_generation">Geração de Jogos</Label>
+                  <Select value={eventData.match_generation} onValueChange={(value) => setEventData({ ...eventData, match_generation: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="manual">Manual</SelectItem>
+                      <SelectItem value="random">Aleatório</SelectItem>
+                      <SelectItem value="by_ranking">Por Ranking</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {eventData.scoring_system === 'points' && (
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="points_per_win">Pontos por Vitória</Label>
                     <Input
-                      id="price"
+                      id="points_per_win"
                       type="number"
-                      step="0.01"
-                      placeholder="Ex: 25.00 (deixe vazio se gratuito)"
-                      value={formData.price}
-                      onChange={(e) => handleInputChange('price', e.target.value)}
-                      className="pl-10"
+                      min="0"
+                      value={eventData.points_per_win}
+                      onChange={(e) => setEventData({ ...eventData, points_per_win: parseInt(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="points_per_draw">Pontos por Empate</Label>
+                    <Input
+                      id="points_per_draw"
+                      type="number"
+                      min="0"
+                      value={eventData.points_per_draw}
+                      onChange={(e) => setEventData({ ...eventData, points_per_draw: parseInt(e.target.value) })}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="points_per_loss">Pontos por Derrota</Label>
+                    <Input
+                      id="points_per_loss"
+                      type="number"
+                      min="0"
+                      value={eventData.points_per_loss}
+                      onChange={(e) => setEventData({ ...eventData, points_per_loss: parseInt(e.target.value) })}
                     />
                   </div>
                 </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Evento Privado</Label>
+                    <p className="text-sm text-gray-500">
+                      Apenas participantes convidados podem ver os detalhes
+                    </p>
+                  </div>
+                  <Switch
+                    checked={eventData.is_private}
+                    onCheckedChange={(checked) => setEventData({ ...eventData, is_private: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Permitir Times</Label>
+                    <p className="text-sm text-gray-500">
+                      Times podem participar do evento
+                    </p>
+                  </div>
+                  <Switch
+                    checked={eventData.allows_teams}
+                    onCheckedChange={(checked) => setEventData({ ...eventData, allows_teams: checked })}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Permitir Jogadores Individuais</Label>
+                    <p className="text-sm text-gray-500">
+                      Jogadores individuais podem participar
+                    </p>
+                  </div>
+                  <Switch
+                    checked={eventData.allows_individual}
+                    onCheckedChange={(checked) => setEventData({ ...eventData, allows_individual: checked })}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-end">
-            <Button 
-              type="button" 
-              variant="outline" 
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => navigate('/events')}
-              className="w-full sm:w-auto"
-              disabled={loading}
+              className="flex-1"
             >
               Cancelar
             </Button>
-            <Button 
-              type="submit"
-              className="w-full sm:w-auto bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-              disabled={loading}
-            >
-              {loading ? "Criando..." : "Criar Evento"}
+            <Button type="submit" disabled={loading} className="flex-1">
+              {loading ? 'Criando...' : 'Criar Evento'}
             </Button>
           </div>
         </form>
